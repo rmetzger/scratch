@@ -116,21 +116,21 @@ public class WordCountJob implements PlanAssembler, PlanAssemblerDescription {
 		// input: treat input as text with TextInputFormat
 		
 		
-		FileDataSource customers = new FileDataSource(TextInputFormat.class, customersPath);
-		FileDataSource orders = new FileDataSource(TextInputFormat.class, ordersPath);
+FileDataSource customers = new FileDataSource(TextInputFormat.class, customersPath);
+FileDataSource orders = new FileDataSource(TextInputFormat.class, ordersPath);
 
-		MapContract ordersFiltered = MapContract.builder(FilterOrders.class).input(orders).build();
-		ReduceContract groupedCustomers = ReduceContract.builder(GroupCustomers.class)
-			.input(customers)
-			.keyField(PactInteger.class, 0)
-			.build();
-		MatchContract joined = MatchContract.builder(JoinOnCustomerid.class,PactInteger.class, 0,0)
-			.input1(ordersFiltered).input2(groupedCustomers).build();
-		ReduceContract orderBy = ReduceContract.builder(MaxSum.class)
-			.input(joined)
-			.keyField(PactInteger.class, 0)
-			.build();
-		FileDataSink sink = new FileDataSink(RecordOutputFormat.class, outputPath, orderBy, "output: word counts");
+MapContract ordersFiltered = MapContract.builder(FilterOrders.class).input(orders).build();
+ReduceContract groupedCustomers = ReduceContract.builder(GroupCustomers.class)
+	.input(customers)
+	.keyField(PactInteger.class, 0)
+	.build();
+MatchContract joined = MatchContract.builder(JoinOnCustomerid.class,PactInteger.class, 0,0)
+	.input1(ordersFiltered).input2(groupedCustomers).build();
+ReduceContract orderBy = ReduceContract.builder(MaxSum.class)
+	.input(joined)
+	.keyField(PactInteger.class, 0)
+	.build();
+FileDataSink sink = new FileDataSink(RecordOutputFormat.class, outputPath, orderBy, "output: word counts");
 		
 		
 		// configure the record output format (at least one field needs to be specified) 
