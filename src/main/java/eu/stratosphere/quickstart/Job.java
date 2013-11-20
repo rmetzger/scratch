@@ -28,6 +28,23 @@ import eu.stratosphere.pact.common.plan.PlanAssemblerDescription;
  * 		target/stratosphere-quickstart-0.1-SNAPSHOT-Sample.jar
  *
  */
+
+public class Person {
+  private final String firstName;
+  private final String lastName;
+  public Person(String firstName, String lastName) {
+    this.firstName = firstName;
+    this.lastName = lastName;
+  }
+  public String getFirstName() {
+    return firstName;
+  }
+  public String getLastName() {
+    return lastName;
+  }
+}
+
+
 public class Job implements PlanAssembler, PlanAssemblerDescription {
 
     public static void execute(Plan toExecute) throws Exception {
