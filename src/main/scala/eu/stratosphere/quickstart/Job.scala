@@ -77,6 +77,17 @@ class Job extends PlanAssembler with PlanAssemblerDescription with Serializable 
   
   def getScalaPlan(numSubTasks: Int, textInput: String, wordsOutput: String) = {
     
+val input = TextFile(textInput)
+val words = input.flatMap { _.split(" ") }
+val counts = words
+  .groupBy { w => w }
+  .count()
+val output = counts.write(wordsOutput, CsvOutputFormat())
+val plan = new ScalaPlan(Seq(output))
+
+
+
+    
     val customersPath ="";
     val ordersPath="";
 val customers = DataSource(customersPath, CsvInputFormat[Customer])
