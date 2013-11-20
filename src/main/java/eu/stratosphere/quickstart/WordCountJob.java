@@ -33,6 +33,18 @@ public class WordCountJob implements PlanAssembler, PlanAssemblerDescription {
 
 	// -- SAMPLE OPERATORS with word counting logic ---------------------------
 
+	
+public class FilterOrders extends MapStub {
+	@Override
+	public void map(PactRecord order, Collector<PactRecord> out)
+			throws Exception {
+		PactString date = order.getField(Orders.DATE_IDX, PactString.class);
+		if(date.getValue().equals("11.20.2013")) {
+			out.collect(order);
+		}
+	}
+}
+
 	public static class SplitWords extends MapStub {
 
 		// resusable mutable objects
