@@ -1,0 +1,106 @@
+package eu.stratosphere.quickstart;
+
+import eu.stratosphere.pact.client.LocalExecutor
+import eu.stratosphere.pact.client.RemoteExecutor
+import eu.stratosphere.pact.common.plan.PlanAssembler
+import eu.stratosphere.pact.common.plan.PlanAssemblerDescription
+import eu.stratosphere.scala._
+import eu.stratosphere.scala.operators._
+import com.google.common.base.IsEqualToPredicate
+
+// You can run this locally using:
+// mvn exec:exec -Dexec.executable="java" -Dexec.args="-cp %classpath eu.stratosphere.quickstart.RunJobLocal 2 file:///some/path file:///some/other/path"
+object RunJobLocal {
+  def main(args: Array[String]) {
+    val job = new Job
+    if (args.size < 3) {
+      println(job.getDescription)
+      return
+    }
+    val plan = job.getScalaPlan(args(0).toInt, args(1), args(2))
+    LocalExecutor.execute(plan)
+    System.exit(0)
+  }
+}
+
+// You can run this on a cluster using:
+// mvn exec:exec -Dexec.executable="java" -Dexec.args="-cp %classpath eu.stratosphere.quickstart.RunJobRemote 2 file:///some/path file:///some/other/path"
+object RunJobRemote {
+  def main(args: Array[String]) {
+    val job = new Job
+    if (args.size < 3) {
+      println(job.getDescription)
+      return
+    }
+    val plan = job.getScalaPlan(args(0).toInt, args(1), args(2))
+    // This will create an executor to run the plan on a cluster. We assume
+    // that the JobManager is running on the local machine on the default
+    // port. Change this according to your configuration.
+    // You will also need to change the name of the jar if you change the
+    // project name and/or version. Before running this you also need
+    // to run "mvn package" to create the jar.
+    val ex = new RemoteExecutor("localhost", 6123, "target/stratosphere-project-0.1-SNAPSHOT.jar");
+    ex.executePlan(plan);
+  }
+}
+
+
+/**
+ * This is a outline for a Stratosphere scala job. It is actually the WordCount 
+ * example from the stratosphere distribution.
+ * 
+ * You can run it out of your IDE using the main() method of RunJob.
+ * This will use the LocalExecutor to start a little Stratosphere instance
+ * out of your IDE.
+ * 
+ * You can also generate a .jar file that you can submit on your Stratosphere
+ * cluster.
+ * Just type 
+ *      mvn clean package
+ * in the projects root directory.
+ * You will find the jar in 
+ *      target/stratosphere-quickstart-0.1-SNAPSHOT-Sample.jar
+ *
+ */
+class Job extends PlanAssembler with PlanAssemblerDescription with Serializable {
+  override def getDescription() = {
+    "Parameters: [numSubStasks] [input] [output]"
+  }
+  override def getPlan(args: String*) = {
+    getScalaPlan(args(0).toInt, args(1), args(2))
+  }
+
+  def formatOutput = (word: String, count: Int) => "%s %d".format(word, count)
+
+  case class Order (id: Int, sum:Int, date:String, c_id:Int, category_id: Int)
+  case class Customer (id: Int, zip:Int, total:Int, name: String)
+  
+  def getScalaPlan(numSubTasks: Int, textInput: String, wordsOutput: String) = {
+    
+    val customersPath ="";
+    val ordersPath="";
+val customers = DataSource(customersPath, CsvInputFormat[Customer])
+val orders = DataSource(ordersPath, CsvInputFormat[Order])
+val ordersFiltered = orders filter { order => order.date.equals("11.20.2013")}
+val groupedCustomers = customers groupBy { cust => cust.zip} reduceGroup {grp => (grp.buffered.head.zip, grp.maxBy{_.total})} 
+val joined = ordersFiltered
+	.join(groupedCustomers)
+	.where {ord => ord.c_id}
+	.isEqualTo {cust => cust._1}
+	.map { (orders, cust) => cust}
+val max = joined groupBy { cust => cust.category_id} reduceGroup {_.maxBy{_.sum}}   
+val output = counts.write(wordsOutput, DelimitedOutputFormat(formatOutput.tupled))
+val plan = new ScalaPlan(Seq(output), "BDB Example")
+
+    val words = input flatMap { _.toLowerCase().split("""\W+""") filter { _ != "" } map { (_, 1) } }
+    val counts = words groupBy { case (word, _) => word } reduce { (w1, w2) => (w1._1, w1._2 + w2._2) }
+
+    counts neglects { case (word, _) => word }
+    counts preserves({ case (word, _) => word }, { case (word, _) => word })
+    val output = counts.write(wordsOutput, DelimitedOutputFormat(formatOutput.tupled))
+  
+    val plan = new ScalaPlan(Seq(output), "Word Count (immutable)")
+    plan.setDefaultParallelism(numSubTasks)
+    plan
+  }
+}
