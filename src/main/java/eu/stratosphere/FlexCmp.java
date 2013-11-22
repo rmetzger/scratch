@@ -245,6 +245,7 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 		ReduceContract countWrong = ReduceContract.builder(new Count("Total wrong count")).input(verify).build();
 		MapContract union = MapContract.builder(Identity.class).input(countCsv,countTsv,countWrong).name("merge").build();
 		FileDataSink statsOut = new FileDataSink(RecordOutputFormat.class, output+"-stats", "Write stats");
+		statsOut.setDegreeOfParallelism(1);
 		statsOut.addInput(union);
 		RecordOutputFormat.configureRecordFormat(statsOut).recordDelimiter('\n')
 				.fieldDelimiter('\t').lenient(true).field(PactString.class, 0).field(PactInteger.class, 1);
