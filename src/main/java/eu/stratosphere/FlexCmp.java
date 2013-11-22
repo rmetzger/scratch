@@ -20,6 +20,7 @@ import eu.stratosphere.pact.common.plan.Plan;
 import eu.stratosphere.pact.common.plan.PlanAssembler;
 import eu.stratosphere.pact.common.plan.PlanAssemblerDescription;
 import eu.stratosphere.pact.common.stubs.Collector;
+import eu.stratosphere.pact.common.stubs.MapStub;
 import eu.stratosphere.pact.common.stubs.MatchStub;
 import eu.stratosphere.pact.common.stubs.ReduceStub;
 import eu.stratosphere.pact.common.type.PactRecord;
@@ -38,7 +39,13 @@ import eu.stratosphere.scala.operators.CsvInputFormat;
  * @author Robert Metzger
  */
 public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
-	
+	public static class Identity extends MapStub {
+		@Override
+		public void map(PactRecord record, Collector<PactRecord> out)
+				throws Exception {
+			out.collect(record);
+		}
+	}
 	public static class Count extends ReduceStub implements Serializable {
 		private String name;
 		public Count(String name) {
@@ -236,10 +243,9 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 		List<GenericDataSink> out = new ArrayList<GenericDataSink>(2);
 		
 		ReduceContract countWrong = ReduceContract.builder(new Count("Total wrong count")).input(verify).build();
+		MapContract union = MapContract.builder(Identity.class).input(countCsv,countTsv,countWrong).name("merge").build();
 		FileDataSink statsOut = new FileDataSink(RecordOutputFormat.class, output+"-stats", "Write stats");
-		statsOut.addInput(countCsv);
-		statsOut.addInput(countTsv);
-		statsOut.addInput(countWrong);
+		statsOut.addInput(union);
 		RecordOutputFormat.configureRecordFormat(statsOut).recordDelimiter('\n')
 				.fieldDelimiter('\t').lenient(true).field(PactString.class, 0).field(PactInteger.class, 1);
 		
@@ -255,7 +261,7 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 	
 	public static void main(String[] args) throws Exception {
 		FlexCmp ic = new FlexCmp();
-		final String PATH = "file:///home/robert/Projekte/t-labs/bdaw.usecases/risk/tuberlin/verify-results/";
+		final String PATH = "file:///home/robert/Projekte/ozone/result-verification/";
 		Plan toExecute = ic.getPlan("1","double",
 				PATH + "csv", "1",
 				PATH + "tsv", "1",
