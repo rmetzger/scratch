@@ -103,8 +103,14 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 			//	System.err.println("No match");
 				if(fromTSV.getNumFields() != 2) throw new RuntimeException("Unexpected 2");
 				if(typeClass == DecimalTextIntParser.class ){
-					fromTSV.setField(1, new PactInteger(-1)); // 1 contains csv value.
+					// if value from TSV is 0, accept it, because my implementation does not output 0.
+					if(0 == fromTSV.getField(1, PactInteger.class).getValue() ) return;
+					// set second value to 0
+					fromTSV.setField(2, fromTSV.getField(1, PactInteger.class)); // 1 contains tsv value.
+					fromTSV.setField(1, new PactInteger(-1)); // set 1 to -1. 2 now contains tsv value.
 				} else {
+					if(0 == fromTSV.getField(1, PactDouble.class).getValue() ) return;
+					fromTSV.setField(2, fromTSV.getField(1, PactDouble.class));
 					fromTSV.setField(1, new PactDouble(-1.0));
 				}
 				out.collect(fromTSV);
@@ -114,6 +120,7 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 			//	System.err.println("From join");
 				if(fromTSV.getNumFields() != 2) throw new RuntimeException("Unexpected 4");
 				// all is "well". we found a wrong record and validated a match
+				
 				out.collect(fromJoin);
 				return;
 			}
