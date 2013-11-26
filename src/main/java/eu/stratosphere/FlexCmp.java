@@ -2,7 +2,6 @@ package eu.stratosphere;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,17 +27,13 @@ import eu.stratosphere.pact.common.type.base.PactBoolean;
 import eu.stratosphere.pact.common.type.base.PactDouble;
 import eu.stratosphere.pact.common.type.base.PactInteger;
 import eu.stratosphere.pact.common.type.base.PactString;
-import eu.stratosphere.pact.common.type.base.parser.DecimalTextDoubleParser;
-import eu.stratosphere.pact.common.type.base.parser.DecimalTextIntParser;
-import eu.stratosphere.pact.common.type.base.parser.DecimalTextLongParser;
-import eu.stratosphere.pact.common.type.base.parser.VarLengthStringParser;
-import eu.stratosphere.scala.operators.CsvInputFormat;
 
 /**
  * 
  * @author Robert Metzger
  */
 public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
+	
 	public static class Identity extends MapStub {
 		@Override
 		public void map(PactRecord record, Collector<PactRecord> out)
@@ -46,6 +41,7 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 			out.collect(record);
 		}
 	}
+	
 	public static class Count extends ReduceStub implements Serializable {
 		private String name;
 		public Count(String name) {
@@ -102,16 +98,22 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 			if(fromJoin.getNumFields() == 0) { // no record from join. we could not match.
 			//	System.err.println("No match");
 				if(fromTSV.getNumFields() != 2) throw new RuntimeException("Unexpected 2");
-				if(typeClass == DecimalTextIntParser.class ){
+				if(typeClass == PactInteger.class ){
 					// if value from TSV is 0, accept it, because my implementation does not output 0.
 					if(0 == fromTSV.getField(1, PactInteger.class).getValue() ) return;
 					// set second value to 0
 					fromTSV.setField(2, fromTSV.getField(1, PactInteger.class)); // 1 contains tsv value.
 					fromTSV.setField(1, new PactInteger(-1)); // set 1 to -1. 2 now contains tsv value.
-				} else {
+				} else if(typeClass == PactDouble.class ){
 					if(0 == fromTSV.getField(1, PactDouble.class).getValue() ) return;
 					fromTSV.setField(2, fromTSV.getField(1, PactDouble.class));
 					fromTSV.setField(1, new PactDouble(-1.0));
+				} else if (typeClass == PactString.class) {
+					if(fromTSV.getField(1, PactString.class).getValue().length() == 0 ) return;
+					fromTSV.setField(2, fromTSV.getField(1, PactString.class));
+					fromTSV.setField(1, new PactString("<-1>")); 
+				} else {
+					throw new RuntimeException("Unknown type class");
 				}
 				out.collect(fromTSV);
 				return;
@@ -148,7 +150,7 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 				Collector<PactRecord> out) throws Exception {
 			flag.set(false);
 			
-			if(typeClass == DecimalTextIntParser.class) {
+			if(typeClass == PactInteger.class) {
 				int csv = value1.getField(1, PactInteger.class).getValue();
 				int tsv = value2.getField(1, PactInteger.class).getValue();
 				if(csv != tsv) {
@@ -159,13 +161,24 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 					out.collect(ret);
 					return;
 				}
-			} else if(typeClass == DecimalTextDoubleParser.class) {
+			} else if(typeClass == PactDouble.class) {
 				double csv = value1.getField(1, PactDouble.class).getValue();
 				double tsv = value2.getField(1, PactDouble.class).getValue();
 				if(Math.abs(csv-tsv) > 1 ) { // less then 1 distance. 
 					ret.setField(0, value1.getField(0, PactString.class));
 					ret.setField(1, new PactDouble(csv));
 					ret.setField(2, new PactDouble(tsv));
+					ret.setField(3, flag);
+					out.collect(ret);
+					return;
+				}
+			} else if(typeClass == PactString.class) {
+				String a = value1.getField(1, PactString.class).getValue();
+				String b = value2.getField(1, PactString.class).getValue();
+				if(!a.equals(b)) {
+					ret.setField(0, value1.getField(0, PactString.class));
+					ret.setField(1, new PactString(a));
+					ret.setField(2, new PactString(b));
 					ret.setField(3, flag);
 					out.collect(ret);
 					return;
@@ -204,10 +217,13 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 
 		Class typeClass = null;
 		if(type.equals("int")) {
-			typeClass = DecimalTextIntParser.class;
+			typeClass = PactInteger.class;
 		}
 		if(type.equals("double")) {
-			typeClass = DecimalTextDoubleParser.class;
+			typeClass = PactDouble.class;
+		}
+		if(type.equals("string")) {
+			typeClass = PactString.class;
 		}
 		if(typeClass == null) throw new IllegalArgumentException("Unknown type");
 		
@@ -215,14 +231,14 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 		RecordInputFormat.configureRecordFormat(csv)
 		.recordDelimiter('\n')
 		.fieldDelimiter(',')
-		.field(VarLengthStringParser.class, 0)
+		.field(PactString.class, 0)
 		.field(typeClass, csvFieldID);	
 		
 		FileDataSource tsv = new FileDataSource(RecordInputFormat.class, inputTSV, "TSV");
 		RecordInputFormat.configureRecordFormat(tsv)
 		.recordDelimiter('\n')
 		.fieldDelimiter('\t')
-		.field(VarLengthStringParser.class, 0)
+		.field(PactString.class, 0)
 		.field(typeClass, tsvFieldID);	
 		
 		ReduceContract countCsv = ReduceContract.builder(new Count("CSV Input Count")).input(csv).build();
@@ -239,14 +255,8 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 		FileDataSink actualResult = new FileDataSink(RecordOutputFormat.class, output, verify, "Write result");
 		ConfigBuilder b = RecordOutputFormat.configureRecordFormat(actualResult).recordDelimiter('\n')
 				.fieldDelimiter(',').lenient(true).field(PactString.class, 0);
-		if(typeClass == DecimalTextIntParser.class) {
-			b.field(PactInteger.class, 1);
-			b.field(PactInteger.class, 2);
-		}
-		if(typeClass == DecimalTextDoubleParser.class) {
-			b.field(PactDouble.class, 1);
-			b.field(PactDouble.class, 2);
-		}
+			b.field(typeClass, 1);
+			b.field(typeClass, 2);
 		List<GenericDataSink> out = new ArrayList<GenericDataSink>(2);
 		
 		ReduceContract countWrong = ReduceContract.builder(new Count("Total wrong count")).input(verify).build();
@@ -278,6 +288,13 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 		System.err.println("Starting");
 		l.start();
 		l.executePlan(toExecute);
+		
+		Plan string = ic.getPlan("1","string",
+				PATH + "string.csv", "1",
+				PATH + "string.tsv", "1",
+				PATH + "string.result");
+		
+		l.executePlan(string);
 		System.exit(0);
 	}
 }

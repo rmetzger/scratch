@@ -35,8 +35,8 @@ class Job extends PlanAssembler with PlanAssemblerDescription with Serializable 
   case class Cmp (id: String, s:Int, c:Int) // s = stra, c = cascading
 
   def getScalaPlan(numSubTasks: Int, input1: String, input2: String, input3:String, outPath: String) = {
-    val inputOne = DataSource(input1, CsvInputFormat[Stra]("\n",",") )
-    val inputTwo = DataSource(input2, CsvInputFormat[Cas]("\n","\t") )
+    val inputOne = DataSource(input1, CsvInputFormat[Stra]() ) // was  "\n",","
+    val inputTwo = DataSource(input2, CsvInputFormat[Cas]() ) // was "\n","\t"
     // val inputThree = DataSource(input2, RecordInputFormat[(String, Int)]("\n","\t") )
     //map { x => (x._1, x._2.toInt)}
    // val iTC = inputTwo 
