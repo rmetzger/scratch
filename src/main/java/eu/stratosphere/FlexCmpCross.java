@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import eu.stratosphere.pact.client.LocalExecutor;
+import eu.stratosphere.pact.common.contract.CoGroupContract;
+import eu.stratosphere.pact.common.contract.CrossContract;
 import eu.stratosphere.pact.common.contract.FileDataSink;
 import eu.stratosphere.pact.common.contract.FileDataSource;
 import eu.stratosphere.pact.common.contract.GenericDataSink;
@@ -18,7 +20,9 @@ import eu.stratosphere.pact.common.io.RecordOutputFormat.ConfigBuilder;
 import eu.stratosphere.pact.common.plan.Plan;
 import eu.stratosphere.pact.common.plan.PlanAssembler;
 import eu.stratosphere.pact.common.plan.PlanAssemblerDescription;
+import eu.stratosphere.pact.common.stubs.CoGroupStub;
 import eu.stratosphere.pact.common.stubs.Collector;
+import eu.stratosphere.pact.common.stubs.CrossStub;
 import eu.stratosphere.pact.common.stubs.MapStub;
 import eu.stratosphere.pact.common.stubs.MatchStub;
 import eu.stratosphere.pact.common.stubs.ReduceStub;
@@ -32,7 +36,7 @@ import eu.stratosphere.pact.common.type.base.PactString;
  * 
  * @author Robert Metzger
  */
-public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
+public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 	
 	public static class Identity extends MapStub {
 		@Override
@@ -62,139 +66,125 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 			out.collect(o);
 		}
 	}
-	
-	public static class VerifyReduce extends ReduceStub implements Serializable {
-		private static final long serialVersionUID = 1L;
-		private Class typeClass;
-		public VerifyReduce(Class typeClass) {
-			this.typeClass = typeClass;
-		}
-		
-		PactRecord fromTSV = new PactRecord();
-		PactRecord fromJoin = new PactRecord();
-		@Override
-		public void reduce(Iterator<PactRecord> records,
-				Collector<PactRecord> out) throws Exception {
-			fromTSV.clear();
-			fromJoin.clear();
-			while(records.hasNext()) {
-				PactRecord r = records.next();
-			//	System.err.println("Got record with "+r.getNumFields()+" fields");
-				if(r.getNumFields() == 2) {
-					r.copyTo(fromTSV);
-				} else if(r.getNumFields() == 4) {
-					boolean wasValid = r.getField(3, PactBoolean.class).getValue();
-					if(wasValid) {
-						return;
-					}
-					r.copyTo(fromJoin);
-				} else {
-					throw new RuntimeException("Unexpected. recrods field count = "+r.getNumFields());
-				}
-			}
-			if(fromTSV.getNumFields() == 0 ) {
-				throw new RuntimeException("Impossible");
-			}
-			if(fromJoin.getNumFields() == 0) { // no record from join. we could not match.
-			//	System.err.println("No match");
-				if(fromTSV.getNumFields() != 2) throw new RuntimeException("Unexpected 2");
-				if(typeClass == PactInteger.class ){
-					// if value from TSV is 0, accept it, because my implementation does not output 0.
-					if(0 == fromTSV.getField(1, PactInteger.class).getValue() ) return;
-					// set second value to 0
-					fromTSV.setField(2, fromTSV.getField(1, PactInteger.class)); // 1 contains tsv value.
-					fromTSV.setField(1, new PactInteger(-1)); // set 1 to -1. 2 now contains tsv value.
-				} else if(typeClass == PactDouble.class ){
-					if(0 == fromTSV.getField(1, PactDouble.class).getValue() ) return;
-					fromTSV.setField(2, fromTSV.getField(1, PactDouble.class));
-					fromTSV.setField(1, new PactDouble(-1.0));
-				} else if (typeClass == PactString.class) {
-					if(fromTSV.getField(1, PactString.class).getValue().length() == 0 ) return;
-					fromTSV.setField(2, fromTSV.getField(1, PactString.class));
-					fromTSV.setField(1, new PactString("<-1>")); 
-				} else {
-					throw new RuntimeException("Unknown type class");
-				}
-				out.collect(fromTSV);
-				return;
-			}
-			if(fromJoin.getNumFields() == 4) {
-			//	System.err.println("From join");
-				if(fromTSV.getNumFields() != 2) throw new RuntimeException("Unexpected 4");
-				// all is "well". we found a wrong record and validated a match
-				
-				out.collect(fromJoin);
-				return;
-			}
-			throw new RuntimeException("We can not end up here!");
-		}
+
+	enum GroupResult {
+		BOTH_UNEQUAL,
+		ONLY_CSV,
+		ONLY_TSV
 	}
-	
-	public static class Match extends MatchStub implements Serializable{
+	public static class CoGroup extends CoGroupStub {
+
+		
 		private static final long serialVersionUID = 1L;
 		private Class typeClass;
-		public Match(Class typeClass) {
+		public CoGroup(Class typeClass) {
 			this.typeClass = typeClass;
 		}
 
-		/**
-		 * 0: str key,
-		 * 1,2: csv, tsv
-		 * 3: match flag ;)
-		 */
-		PactRecord ret = new PactRecord(4);
-		PactBoolean flag = new PactBoolean(false); // indicating if result is valid 
 		
 		@Override
-		public void match(PactRecord value1, PactRecord value2,
-				Collector<PactRecord> out) throws Exception {
-			flag.set(false);
-			
-			if(typeClass == PactInteger.class) {
-				int csv = value1.getField(1, PactInteger.class).getValue();
-				int tsv = value2.getField(1, PactInteger.class).getValue();
-				if(csv != tsv) {
-					ret.setField(0, value1.getField(0, PactString.class));
-					ret.setField(1, new PactInteger(csv));
-					ret.setField(2, new PactInteger(tsv));
-					ret.setField(3, flag);
-					out.collect(ret);
-					return;
-				}
-			} else if(typeClass == PactDouble.class) {
-				double csv = value1.getField(1, PactDouble.class).getValue();
-				double tsv = value2.getField(1, PactDouble.class).getValue();
-				if(Math.abs(csv-tsv) > 1 ) { // less then 1 distance. 
-					ret.setField(0, value1.getField(0, PactString.class));
-					ret.setField(1, new PactDouble(csv));
-					ret.setField(2, new PactDouble(tsv));
-					ret.setField(3, flag);
-					out.collect(ret);
-					return;
-				}
-			} else if(typeClass == PactString.class) {
-				String a = value1.getField(1, PactString.class).getValue();
-				String b = value2.getField(1, PactString.class).getValue();
-				if(!a.equals(b)) {
-					ret.setField(0, value1.getField(0, PactString.class));
-					ret.setField(1, new PactString(a));
-					ret.setField(2, new PactString(b));
-					ret.setField(3, flag);
-					out.collect(ret);
-					return;
-				}
-			} else {
-				throw new RuntimeException("Unknown type");
+		public void coGroup(Iterator<PactRecord> csvIt,
+				Iterator<PactRecord> tsvIt, Collector<PactRecord> out)
+				throws Exception {
+			PactRecord ret = new PactRecord();
+			PactInteger flag = new PactInteger();
+			List<PactRecord> csvs = new ArrayList<PactRecord>();
+			List<PactRecord> tsvs = new ArrayList<PactRecord>();
+			while(csvIt.hasNext()) {
+				csvs.add(csvIt.next().createCopy());
 			}
-			
-			ret.setField(0, value1.getField(0, PactString.class));
-			flag.set(true);
-			ret.setField(3, flag);
-			out.collect(ret);
-			return;
-			
+			while(tsvIt.hasNext()) {
+				tsvs.add(tsvIt.next().createCopy());
+			}
+			Iterator<PactRecord> cIt = csvs.iterator();
+			Iterator<PactRecord> tIt = tsvs.iterator();
+			while(cIt.hasNext()) {
+				PactRecord c = cIt.next();
+				while(tIt.hasNext()) {
+					PactRecord t = tIt.next();
+					boolean match = false;
+					if(typeClass == PactInteger.class) {
+						int csv = c.getField(1, PactInteger.class).getValue();
+						int tsv = t.getField(1, PactInteger.class).getValue();
+						if(csv != tsv) {
+							flag.setValue(GroupResult.BOTH_UNEQUAL.ordinal());
+							ret.setField(0, c.getField(0, PactString.class));
+							ret.setField(1, new PactInteger(csv));
+							ret.setField(2, new PactInteger(tsv));
+							ret.setField(3, flag);
+							match = true;
+							out.collect(ret);
+						}
+					} else if(typeClass == PactDouble.class) {
+						double csv = c.getField(1, PactDouble.class).getValue();
+						double tsv = t.getField(1, PactDouble.class).getValue();
+						if(Math.abs(csv-tsv) > 1 ) { // less then 1 distance. 
+							flag.setValue(GroupResult.BOTH_UNEQUAL.ordinal());
+							ret.setField(0, c.getField(0, PactString.class));
+							ret.setField(1, new PactDouble(csv));
+							ret.setField(2, new PactDouble(tsv));
+							ret.setField(3, flag);
+							match = true;
+							out.collect(ret);
+						}
+					} else if(typeClass == PactString.class) {
+						String a = c.getField(1, PactString.class).getValue();
+						String b = t.getField(1, PactString.class).getValue();
+						if(!a.equals(b)) {
+							flag.setValue(GroupResult.BOTH_UNEQUAL.ordinal());
+							ret.setField(0, c.getField(0, PactString.class));
+							ret.setField(1, new PactString(a));
+							ret.setField(2, new PactString(b));
+							ret.setField(3, flag);
+							match = true;
+							out.collect(ret);
+						}
+					} else {
+						throw new RuntimeException("Unknown type");
+					}
+					if(match) {
+						cIt.remove();
+						tIt.remove();
+					}
+				}
+			}
+			cIt = csvs.iterator();
+			while(cIt.hasNext()) {
+				PactRecord c = cIt.next();
+				flag.setValue(GroupResult.ONLY_CSV.ordinal());
+				c.setField(3, flag);
+				out.collect(c);
+			}
+			tIt = csvs.iterator();
+			while(tIt.hasNext()) {
+				PactRecord t = tIt.next();
+				flag.setValue(GroupResult.ONLY_TSV.ordinal());
+				t.setField(3, flag);
+				out.collect(t);
+			}
+		}
+		
+	}
+	
+	public static class FlagFilter extends MapStub {
+
+		int flag;
+		
+		public FlagFilter(int flag) {
+			super();
+			this.flag = flag;
+		}
+
+		@Override
+		public void map(PactRecord record, Collector<PactRecord> out)
+				throws Exception {
+			int rFlag = record.getField(3, PactInteger.class).getValue();
+			if(rFlag == this.flag) {
+				out.collect(record);
+			}
 		}
 	}
+	
 	@Override
 	public String getDescription() {
 		return "Usage: [numSubStasks] [type] [inputCSV] [fieldID] [inputTSV] [fieldID] [output]";
@@ -232,35 +222,44 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 		.recordDelimiter('\n')
 		.fieldDelimiter(',')
 		.field(PactString.class, 0)
-		.field(typeClass, csvFieldID);	
+		.field(typeClass, csvFieldID);
 		
 		FileDataSource tsv = new FileDataSource(RecordInputFormat.class, inputTSV, "TSV");
 		RecordInputFormat.configureRecordFormat(tsv)
 		.recordDelimiter('\n')
 		.fieldDelimiter('\t')
 		.field(PactString.class, 0)
-		.field(typeClass, tsvFieldID);	
+		.field(typeClass, tsvFieldID);
 		
 		ReduceContract countCsv = ReduceContract.builder(new Count("CSV Input Count")).input(csv).build();
 		ReduceContract countTsv = ReduceContract.builder(new Count("TSV Input Count")).input(tsv).build();
 		
 		
 		
-		MatchContract join = MatchContract.builder(new Match(typeClass), PactString.class, 0, 0)
-							.input1(csv).input2(tsv).name("Match on string key").build();
-		// union join and tsv and count
-		ReduceContract verify = ReduceContract.builder(new VerifyReduce(typeClass),PactString.class,0)
-				.input(join,tsv).name("Verify reducer").build();
+		CoGroupContract cross = CoGroupContract.builder(new CoGroup(typeClass), typeClass, 1, 1)
+				.input1(csv).input2(tsv).build();
+		MapContract unequal = MapContract.builder(new FlagFilter(GroupResult.BOTH_UNEQUAL.ordinal()))
+				.input(cross).build();
+		
+		MapContract onlyCSV = MapContract.builder(new FlagFilter(GroupResult.ONLY_CSV.ordinal()))
+				.input(cross).build();
+		
+		MapContract onlyTSV = MapContract.builder(new FlagFilter(GroupResult.ONLY_TSV.ordinal()))
+				.input(cross).build();
+		
+		ReduceContract countWrong = ReduceContract.builder(new Count("Total wrong count")).input(unequal).build();
+		ReduceContract csvWrongCount = ReduceContract.builder(new Count("CSV only count")).input(onlyCSV).build();
+		ReduceContract tsvWrongCount = ReduceContract.builder(new Count("TSV only count")).input(onlyTSV).build();
 		
 		FileDataSink actualResult = new FileDataSink(RecordOutputFormat.class, output, verify, "Write result");
 		ConfigBuilder b = RecordOutputFormat.configureRecordFormat(actualResult).recordDelimiter('\n')
 				.fieldDelimiter(',').lenient(true).field(PactString.class, 0);
 			b.field(typeClass, 1);
 			b.field(typeClass, 2);
+		
 		List<GenericDataSink> out = new ArrayList<GenericDataSink>(2);
 		
-		ReduceContract countWrong = ReduceContract.builder(new Count("Total wrong count")).input(verify).build();
-		MapContract union = MapContract.builder(Identity.class).input(countCsv,countTsv,countWrong).name("merge").build();
+		MapContract union = MapContract.builder(Identity.class).input(countCsv,countTsv,countWrong,csvWrongCount,tsvWrongCount).name("merge").build();
 		FileDataSink statsOut = new FileDataSink(RecordOutputFormat.class, output+"-stats", "Write stats");
 		statsOut.setDegreeOfParallelism(1);
 		statsOut.addInput(union);
@@ -269,6 +268,10 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 		
 		out.add(statsOut);
 		out.add(actualResult);
+		
+		
+			
+			
 		Plan plan = new Plan(out, "Generic Comparator");
 		plan.setDefaultParallelism(noSubTasks);
 		return plan;
@@ -278,7 +281,7 @@ public class FlexCmp implements PlanAssembler, PlanAssemblerDescription {
 	
 	
 	public static void main(String[] args) throws Exception {
-		FlexCmp ic = new FlexCmp();
+		FlexCmpCross ic = new FlexCmpCross();
 		// final String PATH = "file:///home/robert/Projekte/ozone/result-verification/";
 		final String PATH = "file:///home/robert/Projekte/ozone/work/result-verification/";
 		Plan toExecute = ic.getPlan("1","double",
