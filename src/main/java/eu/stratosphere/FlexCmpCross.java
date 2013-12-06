@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.omg.PortableServer.POAPackage.WrongAdapter;
+
 import eu.stratosphere.pact.client.LocalExecutor;
 import eu.stratosphere.pact.common.contract.CoGroupContract;
 import eu.stratosphere.pact.common.contract.CrossContract;
@@ -31,6 +33,7 @@ import eu.stratosphere.pact.common.type.base.PactBoolean;
 import eu.stratosphere.pact.common.type.base.PactDouble;
 import eu.stratosphere.pact.common.type.base.PactInteger;
 import eu.stratosphere.pact.common.type.base.PactString;
+import eu.stratosphere.pact.generic.contract.Contract;
 
 /**
  * 
@@ -72,8 +75,7 @@ public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 		ONLY_CSV,
 		ONLY_TSV
 	}
-	public static class CoGroup extends CoGroupStub {
-
+	public static class CoGroup extends CoGroupStub implements Serializable {
 		
 		private static final long serialVersionUID = 1L;
 		private Class typeClass;
@@ -142,10 +144,10 @@ public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 					} else {
 						throw new RuntimeException("Unknown type");
 					}
-					if(match) {
+				//	if(match) {
 						cIt.remove();
 						tIt.remove();
-					}
+					//}
 				}
 			}
 			cIt = csvs.iterator();
@@ -155,7 +157,7 @@ public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 				c.setField(3, flag);
 				out.collect(c);
 			}
-			tIt = csvs.iterator();
+			tIt = tsvs.iterator();
 			while(tIt.hasNext()) {
 				PactRecord t = tIt.next();
 				flag.setValue(GroupResult.ONLY_TSV.ordinal());
@@ -166,7 +168,7 @@ public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 		
 	}
 	
-	public static class FlagFilter extends MapStub {
+	public static class FlagFilter extends MapStub implements Serializable {
 
 		int flag;
 		
@@ -236,7 +238,7 @@ public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 		
 		
 		
-		CoGroupContract cross = CoGroupContract.builder(new CoGroup(typeClass), typeClass, 1, 1)
+		CoGroupContract cross = CoGroupContract.builder(new CoGroup(typeClass), PactString.class, 0, 0)
 				.input1(csv).input2(tsv).build();
 		MapContract unequal = MapContract.builder(new FlagFilter(GroupResult.BOTH_UNEQUAL.ordinal()))
 				.input(cross).build();
@@ -251,24 +253,29 @@ public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 		ReduceContract csvWrongCount = ReduceContract.builder(new Count("CSV only count")).input(onlyCSV).build();
 		ReduceContract tsvWrongCount = ReduceContract.builder(new Count("TSV only count")).input(onlyTSV).build();
 		
-		FileDataSink actualResult = new FileDataSink(RecordOutputFormat.class, output, verify, "Write result");
-		ConfigBuilder b = RecordOutputFormat.configureRecordFormat(actualResult).recordDelimiter('\n')
-				.fieldDelimiter(',').lenient(true).field(PactString.class, 0);
-			b.field(typeClass, 1);
-			b.field(typeClass, 2);
+		FileDataSink unequalDetail = new FileDataSink(RecordOutputFormat.class, output, unequal, "Write result");
+		 RecordOutputFormat.configureRecordFormat(unequalDetail).recordDelimiter('\n')
+				.fieldDelimiter(',').lenient(true).field(PactString.class, 0).field(typeClass, 1).field(typeClass, 2);
+			
+		FileDataSink onlyCSVDetail = new FileDataSink(RecordOutputFormat.class, output+"-csv", onlyCSV, "Write result");
+			RecordOutputFormat.configureRecordFormat(onlyCSVDetail).recordDelimiter('\n')
+					.fieldDelimiter(',').lenient(true).field(PactString.class, 0).field(typeClass, 1).field(typeClass, 2);
+		FileDataSink onlyTSVDetail = new FileDataSink(RecordOutputFormat.class, output+"-tsv", onlyTSV, "Write result");
+			RecordOutputFormat.configureRecordFormat(onlyTSVDetail).recordDelimiter('\n')
+					.fieldDelimiter(',').lenient(true).field(PactString.class, 0).field(typeClass, 1).field(typeClass, 2);
 		
 		List<GenericDataSink> out = new ArrayList<GenericDataSink>(2);
 		
-		MapContract union = MapContract.builder(Identity.class).input(countCsv,countTsv,countWrong,csvWrongCount,tsvWrongCount).name("merge").build();
 		FileDataSink statsOut = new FileDataSink(RecordOutputFormat.class, output+"-stats", "Write stats");
 		statsOut.setDegreeOfParallelism(1);
-		statsOut.addInput(union);
+		List<Contract> union = new ArrayList<Contract>();
+		union.add(countWrong); union.add(csvWrongCount); union.add(tsvWrongCount); union.add(countCsv); union.add(countTsv);
+		statsOut.addInputs(union);
 		RecordOutputFormat.configureRecordFormat(statsOut).recordDelimiter('\n')
 				.fieldDelimiter('\t').lenient(true).field(PactString.class, 0).field(PactInteger.class, 1);
 		
 		out.add(statsOut);
-		out.add(actualResult);
-		
+		out.add(unequalDetail); out.add(onlyCSVDetail); out.add(onlyTSVDetail);
 		
 			
 			
@@ -282,8 +289,8 @@ public class FlexCmpCross implements PlanAssembler, PlanAssemblerDescription {
 	
 	public static void main(String[] args) throws Exception {
 		FlexCmpCross ic = new FlexCmpCross();
-		// final String PATH = "file:///home/robert/Projekte/ozone/result-verification/";
-		final String PATH = "file:///home/robert/Projekte/ozone/work/result-verification/";
+		 final String PATH = "file:///home/robert/Projekte/ozone/result-verification/";
+		//final String PATH = "file:///home/robert/Projekte/ozone/work/result-verification/";
 		Plan toExecute = ic.getPlan("1","double",
 				PATH + "csv", "1",
 				PATH + "tsv", "1",
