@@ -7,6 +7,8 @@ import java.io.OutputStream;
 
 import org.apache.commons.lang.RandomStringUtils;
 
+import com.google.protobuf.CodedOutputStream;
+
 import de.robertmetzger.protobuf.generated.Map;
 import de.robertmetzger.protobuf.generated.Map.KeyValue;
 import de.robertmetzger.protobuf.generated.Map.KeyValue.Builder;
@@ -35,6 +37,10 @@ public class Launcher {
 				System.err.println("sending key "+kv.getKey() );
 				kv.writeDelimitedTo(processInput);
 			}
+			// write -1 
+			final CodedOutputStream codedOutput = CodedOutputStream.newInstance(processInput, 1);
+			codedOutput.writeRawVarint32(-1);
+			codedOutput.flush();
 			processInput.close();
 			
 			String line;
