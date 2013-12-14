@@ -7,3 +7,6 @@ message KeyValue {
   required string value = 2;
 }
 
+message Stream {
+  repeated KeyValue record = 1;
+}
