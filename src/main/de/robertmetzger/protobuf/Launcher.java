@@ -30,12 +30,15 @@ public class Launcher {
 			
 			BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			BufferedReader err = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-			OutputStream processInput = p.getOutputStream();
+			OutputStream processInput = p.getOutputStream(); // this thing is buffered with 8k
+			String line;
 			for (int i = 0; i < 2; i++) {
 				KeyValue kv = generateKeyValue();
 				System.err.println("ser size "+kv.getSerializedSize());
 				System.err.println("sending key "+kv.getKey() );
 				kv.writeDelimitedTo(processInput);
+				processInput.flush();
+				
 			}
 			// write -1 
 			final CodedOutputStream codedOutput = CodedOutputStream.newInstance(processInput, 1);
@@ -43,7 +46,7 @@ public class Launcher {
 			codedOutput.flush();
 			processInput.close();
 			
-			String line;
+			
 			while ((line = input.readLine()) != null) {
 				System.err.println("Python: '"+line);
 			}
