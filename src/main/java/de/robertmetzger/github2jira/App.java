@@ -1,8 +1,10 @@
 package de.robertmetzger.github2jira;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import net.rcarz.jiraclient.Issue.SearchResult;
 import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -54,15 +57,18 @@ public class App  {
     		System.exit(1);
     	}
     		
+    	
+    	
     	final String ghUser = prop.getProperty("github.user");
     	final String ghRepo = prop.getProperty("github.repository");
     	final String jiraProject = prop.getProperty("jira.project");
     	
     	
     	BasicCredentials creds = new BasicCredentials(prop.getProperty("jira.username"), prop.getProperty("jira.password"));
-    	JiraClient jc = new JiraClient("https://issues.apache.org/jira", creds);
+    	JiraClient jc = new JiraClient(prop.getProperty("jira.url"), creds);
     	
     	IssueService is = new IssueService();
+    	
     	PageIterator<Issue> issuesPager = is.pageIssues(ghUser, ghRepo, ImmutableMap.of("direction", "asc", "state", "all", "filter", "all"), 1, 1);
     	int c = 0;
     	while(issuesPager.hasNext()) {
@@ -92,12 +98,14 @@ public class App  {
 	    		fluent.field(Field.SUMMARY, "[GitHub] "+i.getTitle());
 	    		fluent.field(Field.LABELS, ImmutableSet.of("github import"));
 	    		fluent.field(Field.FIX_VERSIONS, ImmutableSet.of("pre-apache"));
-	    	//	fluent.field(Field.STATUS, "");
+	    		
 	    		net.rcarz.jiraclient.Issue jiraIssue = fluent.execute();
-	    		String diffUrl = i.getPullRequest().getDiffUrl();
-	    		if(diffUrl != null && diffUrl.length() > 0) {
+	    		String patchURL = i.getPullRequest().getPatchUrl();
+	    		if(patchURL != null && patchURL.length() > 0) {
 	    			// issue is pull request
-	    			
+	    			File patch = File.createTempFile("pull-request-"+i.getNumber(), "patch");
+	    			FileUtils.copyURLToFile(new URL(patchURL), patch);
+	    			jiraIssue.addAttachment(patch);
 	    		}
 	    		List<Comment> ghComments = is.getComments(ghUser, ghRepo, i.getNumber());
 	    		for(Comment com : ghComments) {
