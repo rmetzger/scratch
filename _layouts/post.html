@@ -1,0 +1,15 @@
+---
+layout: blog_layout
+---
+
+<article>
+	<h2>{{ page.title }}</h2>
+	<p class="meta">{{ page.date | date_to_string }}</p>
+	
+	<div>
+	{{ content }}
+	</div>
+	
+	{% include comment_box.html %}
+</article>
+	

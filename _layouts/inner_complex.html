@@ -1,0 +1,24 @@
+---
+layout:        default
+smooth_scroll: true
+---
+
+{% if page.jumbotron %}{% include jumbotron.html jumbotron=page.jumbotron %}{% endif %}
+
+<div class="container">
+	<div class="subnav" id="navbar-inner">
+		<div id="scrollspy">
+			<ul class="nav nav-pills">
+			{% for link in page.links %}
+			 <li><a href="#{{ link.anchor }}">{{ link.title }}</a></li>
+			{% endfor %}
+			</ul>
+		</div>
+	</div>
+	
+	<div>
+		{{ content }}
+	</div>
+	
+</div>
+<!-- /.container -->
