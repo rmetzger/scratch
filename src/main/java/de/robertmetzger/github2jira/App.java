@@ -56,9 +56,13 @@ public class App  {
     		e.printStackTrace();
     		System.exit(1);
     	}
+    	
+//    	
+    	
     		
     	
-    	
+    	System.exit(1);
+    		
     	final String ghUser = prop.getProperty("github.user");
     	final String ghRepo = prop.getProperty("github.repository");
     	final String jiraProject = prop.getProperty("jira.project");
@@ -69,7 +73,7 @@ public class App  {
     	
     	IssueService is = new IssueService();
     	
-    	PageIterator<Issue> issuesPager = is.pageIssues(ghUser, ghRepo, ImmutableMap.of("direction", "asc", "state", "all", "filter", "all"), 1, 1);
+    	PageIterator<Issue> issuesPager = is.pageIssues(ghUser, ghRepo, ImmutableMap.of("direction", "asc", "state", "all", "filter", "all"), 14, 1);
     	int c = 0;
     	while(issuesPager.hasNext()) {
     		Collection<Issue> issues = issuesPager.next();
@@ -94,37 +98,55 @@ public class App  {
 	    		}
 	    		importInformation += "Created at: "+i.getCreatedAt()+nl;
 	    		importInformation += "State: "+i.getState()+nl; 
-	    		fluent.field(Field.DESCRIPTION, i.getBody()+nl+nl+importInformation);
+	    		fluent.field(Field.DESCRIPTION, autorefIssuesInText(i.getBody(), prop)+nl+nl+importInformation);
 	    		fluent.field(Field.SUMMARY, "[GitHub] "+i.getTitle());
-	    		fluent.field(Field.LABELS, ImmutableSet.of("github import"));
+	    		fluent.field(Field.LABELS, ImmutableSet.of("github-import"));
 	    		fluent.field(Field.FIX_VERSIONS, ImmutableSet.of("pre-apache"));
 	    		
 	    		net.rcarz.jiraclient.Issue jiraIssue = fluent.execute();
 	    		String patchURL = i.getPullRequest().getPatchUrl();
 	    		if(patchURL != null && patchURL.length() > 0) {
 	    			// issue is pull request
-	    			File patch = File.createTempFile("pull-request-"+i.getNumber(), "patch");
+	    			File patch = File.createTempFile("pull-request-"+i.getNumber()+"-", ".patch");
 	    			FileUtils.copyURLToFile(new URL(patchURL), patch);
 	    			jiraIssue.addAttachment(patch);
 	    		}
 	    		List<Comment> ghComments = is.getComments(ghUser, ghRepo, i.getNumber());
 	    		for(Comment com : ghComments) {
-	    			jiraIssue.addComment("[GitHub Import] [Date: "+com.getCreatedAt()+", Author: "+userToUrl(com.getUser())+"]"+nl+
-	    					com.getBody());
+	    			jiraIssue.addComment("[GitHub Import] [Date: "+com.getCreatedAt()+", Author: "+userToUrl(com.getUser())+"]"+nl+nl+
+	    					autorefIssuesInText(com.getBody(), prop) );
 	    		}
 	    		if(i.getState().equals("closed")) {
-	    			jiraIssue.transition().execute("Closed");
+	    			jiraIssue.transition().execute("Close Issue");
 	    		}
 	    		
 	    		
-	    		//if( c++ > 10) {
+	    		if( c++ >= 5) {
 	    			System.exit(1);
-	    		// }
+	    		 }
 	    	}
     	}
 //    	
     	
     	
+    }
+    
+
+    		
+    public static String autorefIssuesInText(String text, Properties props) {
+    	// github url 2 jira url
+    	text = text.replaceAll("\\[([^\\]]+)\\]\\(([^\\]]+)\\)", "[$1|$2]");
+    	
+    	// issue id to jira / github link
+    	text = text.replaceAll("\\#([0-9]+)", 
+    		"([\\#$1|https://github.com/"+props.getProperty("github.user")+"/"+props.getProperty("github.repository")+"/issues/$1]"
+    				+ " | "
+    				+ "[FLINK-$1|"+props.getProperty("jira.url")+"/browse/"+props.getProperty("jira.project")+"-$1])");
+    	// commit hash to github link
+    	text = text.replaceAll("([^/]{1})([a-z0-9]{40})", "$1[$2|https://github.com/"+props.getProperty("github.user")+"/"+props.getProperty("github.repository")+"/commit/$2]");
+    	
+    	System.err.println("out = "+text);
+    	return text;
     }
     
     private static String userToUrl(User user) {
