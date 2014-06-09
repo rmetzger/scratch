@@ -1,3 +1,12 @@
-github.user = "stratosphere"
-github.repository = "stratosphere"
-jira.project = "FLINK"
+github.user = stratosphere
+github.repository = stratosphere
+github.importuser = rmetzger
+github.importpassword = yourPassword
+# what GitHub Issue number to start at.
+github.startAt = 1
+
+
+jira.url = https://issues.apache.org/jira
+jira.project = FLINK
+jira.username = github-import
+jira.password = yourJiraImportUserPassword

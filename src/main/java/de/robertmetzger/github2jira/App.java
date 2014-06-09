@@ -6,27 +6,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
 import net.rcarz.jiraclient.BasicCredentials;
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.Issue.FluentCreate;
-import net.rcarz.jiraclient.Issue.SearchResult;
 import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import org.eclipse.egit.github.core.Comment;
 import org.eclipse.egit.github.core.Issue;
 import org.eclipse.egit.github.core.Label;
 import org.eclipse.egit.github.core.User;
+import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.client.PageIterator;
 import org.eclipse.egit.github.core.service.IssueService;
 
@@ -34,9 +28,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * Hello world!
+ * Import GitHub issues into JIRA.
+ * 
+ * @author Robert Metzger (rmetzger@apache.org)
  *
  */
+
 public class App  {
 	public static final String nl = "\n";
 	
@@ -56,24 +53,22 @@ public class App  {
     		e.printStackTrace();
     		System.exit(1);
     	}
-    	
-//    	
-    	
-    		
-    	
-    	System.exit(1);
-    		
+    	    		
     	final String ghUser = prop.getProperty("github.user");
     	final String ghRepo = prop.getProperty("github.repository");
     	final String jiraProject = prop.getProperty("jira.project");
+    	int startAt = Integer.valueOf(prop.getProperty("github.startAt"));
     	
     	
     	BasicCredentials creds = new BasicCredentials(prop.getProperty("jira.username"), prop.getProperty("jira.password"));
     	JiraClient jc = new JiraClient(prop.getProperty("jira.url"), creds);
     	
-    	IssueService is = new IssueService();
+    	GitHubClient ghClient = new GitHubClient();
+    	ghClient.setCredentials(prop.getProperty("github.importuser"), prop.getProperty("github.importpassword"));
+    	IssueService is = new IssueService(ghClient);
     	
-    	PageIterator<Issue> issuesPager = is.pageIssues(ghUser, ghRepo, ImmutableMap.of("direction", "asc", "state", "all", "filter", "all"), 14, 1);
+    	
+    	PageIterator<Issue> issuesPager = is.pageIssues(ghUser, ghRepo, ImmutableMap.of("direction", "asc", "state", "all", "filter", "all"), startAt, 1);
     	int c = 0;
     	while(issuesPager.hasNext()) {
     		Collection<Issue> issues = issuesPager.next();
@@ -99,7 +94,7 @@ public class App  {
 	    		importInformation += "Created at: "+i.getCreatedAt()+nl;
 	    		importInformation += "State: "+i.getState()+nl; 
 	    		fluent.field(Field.DESCRIPTION, autorefIssuesInText(i.getBody(), prop)+nl+nl+importInformation);
-	    		fluent.field(Field.SUMMARY, "[GitHub] "+i.getTitle());
+	    		fluent.field(Field.SUMMARY, i.getTitle());
 	    		fluent.field(Field.LABELS, ImmutableSet.of("github-import"));
 	    		fluent.field(Field.FIX_VERSIONS, ImmutableSet.of("pre-apache"));
 	    		
@@ -109,25 +104,25 @@ public class App  {
 	    			// issue is pull request
 	    			File patch = File.createTempFile("pull-request-"+i.getNumber()+"-", ".patch");
 	    			FileUtils.copyURLToFile(new URL(patchURL), patch);
-	    			jiraIssue.addAttachment(patch);
+	    			if(patch.length() >= 10485760) {
+	    				System.err.println("This issue's attachment is larger than 10 MB.");
+	    				jiraIssue.addComment("Unable to add patch as an attachment, since its larger than 10 MB");
+	    			} else {
+	    				jiraIssue.addAttachment(patch);
+	    			}
 	    		}
 	    		List<Comment> ghComments = is.getComments(ghUser, ghRepo, i.getNumber());
 	    		for(Comment com : ghComments) {
-	    			jiraIssue.addComment("[GitHub Import] [Date: "+com.getCreatedAt()+", Author: "+userToUrl(com.getUser())+"]"+nl+nl+
+	    			jiraIssue.addComment("[Date: "+com.getCreatedAt()+", Author: "+userToUrl(com.getUser())+"]"+nl+nl+
 	    					autorefIssuesInText(com.getBody(), prop) );
 	    		}
 	    		if(i.getState().equals("closed")) {
 	    			jiraIssue.transition().execute("Close Issue");
 	    		}
 	    		
-	    		
-	    		if( c++ >= 5) {
-	    			System.exit(1);
-	    		 }
+	    		System.err.println("Import "+c+ " done. Remaining requests "+ghClient.getRemainingRequests());
 	    	}
     	}
-//    	
-    	
     	
     }
     
@@ -145,7 +140,6 @@ public class App  {
     	// commit hash to github link
     	text = text.replaceAll("([^/]{1})([a-z0-9]{40})", "$1[$2|https://github.com/"+props.getProperty("github.user")+"/"+props.getProperty("github.repository")+"/commit/$2]");
     	
-    	System.err.println("out = "+text);
     	return text;
     }
     
