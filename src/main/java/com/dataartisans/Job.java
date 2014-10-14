@@ -130,7 +130,7 @@ public class Job {
 		System.err.println("Generating Log data with the following properties:\n"
 				+ "dop="+dop+" outPath="+outPath+" finalSizeGB="+finalSizeGB+" bytesPerMapper="+bytesPerMapper);
 		
-		DataSet<Long> empty = env.generateSequence(0, dop);
+		DataSet<Long> empty = env.generateSequence(1, dop);
 		DataSet<String> logLine = empty.flatMap(new FlatMapFunction<Long, String>() {
 			private static final long serialVersionUID = 1L;
 
