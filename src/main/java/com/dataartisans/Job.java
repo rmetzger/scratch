@@ -130,12 +130,12 @@ public class Job {
 		System.err.println("Generating Log data with the following properties:\n"
 				+ "dop="+dop+" outPath="+outPath+" finalSizeGB="+finalSizeGB+" bytesPerMapper="+bytesPerMapper);
 		
-		DataSet<String> empty = env.fromCollection(Arrays.asList(new String[] {""}));
-		DataSet<String> logLine = empty.flatMap(new FlatMapFunction<String, String>() {
+		DataSet<Long> empty = env.generateSequence(0, dop);
+		DataSet<String> logLine = empty.flatMap(new FlatMapFunction<Long, String>() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
-			public void flatMap(String value, Collector<String> out) throws Exception {
+			public void flatMap(Long value, Collector<String> out) throws Exception {
 				Random rnd = new XORShiftRandom();
 				StringBuffer sb = new StringBuffer();
 				long bytesGenerated = 0;
