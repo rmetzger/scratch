@@ -59,13 +59,6 @@ under the License.
 			<artifactId>flink-clients</artifactId>
 			<version>0.7.0-incubating</version>
 		</dependency>
-		
-		<dependency>
-	    <groupId>org.apache.jmeter</groupId>
-	    <artifactId>ApacheJMeter_http</artifactId>
-	    <version>2.11</version>
-	</dependency>
-
 	</dependencies>
 
 	<!-- We use the maven-assembly plugin to create a fat jar that contains all dependencies
