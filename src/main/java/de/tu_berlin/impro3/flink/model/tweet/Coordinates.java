@@ -9,7 +9,7 @@ import com.google.gson.Gson;
  */
 public class Coordinates {
 
-    private String type;
+    public String type;
 
     private double[] coordinates = new double[2];
 
@@ -35,6 +35,7 @@ public class Coordinates {
     public String getType() {
         return type;
     }
+
 
 
     public static void main(String[] args) {

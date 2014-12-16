@@ -10,7 +10,7 @@ import java.util.List;
 
 public class Tweet {
 
-    private List<Contributors> contributors;
+    public List<Contributors> contributors;
 
     private Coordinates coordinates;
 
@@ -252,4 +252,32 @@ public class Tweet {
         this.user = user;
     }
 
+    @Override
+    public String toString() {
+        return "Tweet{" +
+                "contributors=" + contributors +
+                ", coordinates=" + coordinates +
+                ", created_at='" + created_at + '\'' +
+                ", entities=" + entities +
+                ", favorite_count=" + favorite_count +
+                ", favorited=" + favorited +
+                ", filter_level='" + filter_level + '\'' +
+                ", id=" + id +
+                ", id_str='" + id_str + '\'' +
+                ", in_reply_to_screen_name='" + in_reply_to_screen_name + '\'' +
+                ", in_reply_to_status_id=" + in_reply_to_status_id +
+                ", in_reply_to_status_id_str='" + in_reply_to_status_id_str + '\'' +
+                ", in_reply_to_user_id=" + in_reply_to_user_id +
+                ", in_reply_to_user_id_str='" + in_reply_to_user_id_str + '\'' +
+                ", lang='" + lang + '\'' +
+                ", place=" + place +
+                ", possibly_sensitive=" + possibly_sensitive +
+                ", retweet_count=" + retweet_count +
+                ", retweeted=" + retweeted +
+                ", source='" + source + '\'' +
+                ", text='" + text + '\'' +
+                ", truncated=" + truncated +
+                ", user=" + user +
+                '}';
+    }
 }

@@ -1,4 +1,4 @@
-package de.tu_berlin.impro3.flink.model.tweet;
+package de.tu_berlin.impro3.flink.model;
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -18,7 +18,13 @@ package de.tu_berlin.impro3.flink.model.tweet;
  * limitations under the License.
  */
 
+import de.tu_berlin.impro3.flink.model.tweet.Tweet;
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.GroupReduceFunction;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.util.Collector;
 
 /**
  * Skeleton for a Flink Job.
@@ -41,29 +47,31 @@ public class Job {
 		// set up the execution environment
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
+		DataSet<Long> seq = env.generateSequence(0, 10);
+		DataSet<Tweet> tw = seq.flatMap(new FlatMapFunction<Long, Tweet>() {
+			@Override
+			public void flatMap(Long aLong, Collector<Tweet> coll) throws Exception {
+				for(int i = 0; i < 5; i++) {
+					Tweet t = new Tweet();
+					t.setText("uhlalhla .. thats the text");
+					t.setId(aLong);
+					coll.collect(t);
+				}
+			}
+		});
+		DataSet<Integer> cnts = tw.groupBy("id").reduceGroup(new GroupReduceFunction<Tweet, Integer>() {
+			@Override
+			public void reduce(Iterable<Tweet> iterable, Collector<Integer> collector) throws Exception {
+				int cnt = 0;
+				for(Tweet t: iterable) {
+					cnt++;
+				}
+				collector.collect(cnt);
+			}
+		});
+		cnts.print();
 
-		/**
-		 * Here, you can start creating your execution plan for Flink.
-		 *
-		 * Start with getting some data from the environment, like
-		 * 	env.readTextFile(textPath);
-		 *
-		 * then, transform the resulting DataSet<String> using operations
-		 * like
-		 * 	.filter()
-		 * 	.flatMap()
-		 * 	.join()
-		 * 	.coGroup()
-		 * and many more.
-		 * Have a look at the programming guide for the Java API:
-		 *
-		 * http://flink.incubator.apache.org/docs/0.6-SNAPSHOT/java_api_guide.html
-		 *
-		 * and the examples
-		 *
-		 * http://flink.incubator.apache.org/docs/0.6-SNAPSHOT/java_api_examples.html
-		 *
-		 */
+		// tw.print();
 
 		// execute program
 		env.execute("Flink Java API Skeleton");

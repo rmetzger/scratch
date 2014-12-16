@@ -9,15 +9,15 @@ import java.util.List;
  */
 public class Entities {
 
-    private List<HashTags> hashtags;
+    public List<HashTags> hashtags;
 
-    private List<Media> media;
+    public List<Media> media;
 
-    private List<URL> urls;
+    public List<URL> urls;
 
-    private List<UserMention> user_mentions;
+    public List<UserMention> user_mentions;
 
-    private List<Symbol> symbols;
+    public List<Symbol> symbols;
 
     public Entities() {
 
