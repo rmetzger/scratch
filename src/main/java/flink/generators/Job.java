@@ -18,8 +18,11 @@ package flink.generators;
  * limitations under the License.
  */
 
+import com.google.common.base.Preconditions;
+import io.airlift.tpch.Distributions;
 import io.airlift.tpch.Part;
 import io.airlift.tpch.PartGenerator;
+import io.airlift.tpch.TextPool;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.DataSource;
@@ -35,9 +38,10 @@ public class Job {
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		DistributedTPCH gen = new DistributedTPCH(env);
-		gen.setScale(1.0);
+		gen.setScale(0.1);
 
 		DataSet<Part> parts = gen.generateParts();
+		parts.print();
 
 		// execute program
 		env.execute("Flink Java API Skeleton");
@@ -65,29 +69,42 @@ public class Job {
 		public DataSet<Part> generateParts() {
 
 			SplittableIterator<Part> si = new PartSplittableIterator(scale, env.getDegreeOfParallelism());
-			env.fromParallelCollection(si, Part.class);
-			return null;
+			return env.fromParallelCollection(si, Part.class);
 		}
 	}
+
 	public static class PartSplittableIterator implements SplittableIterator<Part> {
+
 		private double scale;
 		private int degreeOfParallelism;
 
 		public PartSplittableIterator(double scale, int degreeOfParallelism) {
+			Preconditions.checkArgument(scale > 0, "Scale must be > 0");
+			Preconditions.checkArgument(degreeOfParallelism > 0, "Parallelism must be > 0");
+
 			this.scale = scale;
 			this.degreeOfParallelism = degreeOfParallelism;
-			// PartGenerator pg = new PartGenerator(scale)
 		}
 
 		@Override
 		public Iterator<Part>[] split(int numPartitions) {
-
-			return new Iterator<Part>[0];
+			if(numPartitions > this.degreeOfParallelism) {
+				throw new IllegalArgumentException("Too many partitions requested");
+			}
+			Iterator<Part>[] iters = new Iterator[numPartitions];
+			for(int i = 1; i <= numPartitions; i++) {
+				System.out.println("Creating part ("+i+"/"+numPartitions+")");
+				iters[i - 1] = new PartSplittableIterator(i, numPartitions, scale);
+			}
+			return iters;
 		}
 
 		@Override
 		public Iterator<Part> getSplit(int num, int numPartitions) {
-			return null;
+			if (numPartitions < 1 || num < 0 || num >= numPartitions) {
+				throw new IllegalArgumentException();
+			}
+			return split(numPartitions)[num];
 		}
 
 		@Override
@@ -96,14 +113,24 @@ public class Job {
 		}
 
 		//------------------------ Iterator -----------------------------------
+		private Iterator<Part> iter;
+		private static TextPool smallTextPool;
+		static {
+			smallTextPool = new TextPool(30 * 1024 * 1024, Distributions.getDefaultDistributions()); // 30 MB txt pool
+		}
+
+		public PartSplittableIterator(int partNo, int totalParts, double scale) {
+			PartGenerator pg = new PartGenerator(scale, partNo, totalParts, Distributions.getDefaultDistributions(), smallTextPool);
+			iter = pg.iterator();
+		}
 		@Override
 		public boolean hasNext() {
-			return false;
+			return iter.hasNext();
 		}
 
 		@Override
 		public Part next() {
-			return null;
+			return iter.next();
 		}
 	}
 }
