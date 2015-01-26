@@ -59,10 +59,23 @@ under the License.
 			<artifactId>flink-clients</artifactId>
 			<version>0.9-SNAPSHOT</version>
 		</dependency>
+
 		<dependency>
 			<groupId>io.airlift.tpch</groupId>
 			<artifactId>tpch</artifactId>
 			<version>0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-test-utils</artifactId>
+			<version>0.9-SNAPSHOT</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -81,7 +94,7 @@ under the License.
 					</descriptors>
 					<archive>
 						<manifest>
-							<mainClass>flink.generators.Job</mainClass>
+							<mainClass>flink.generators.TPCHGeneratorExample</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
@@ -103,7 +116,7 @@ under the License.
 				<configuration>
 					<archive>
 						<manifestEntries>
-							<Main-Class>flink.generators.Job</Main-Class>
+							<Main-Class>flink.generators.TPCHGeneratorExample</Main-Class>
 						</manifestEntries>
 					</archive>
 				</configuration>
