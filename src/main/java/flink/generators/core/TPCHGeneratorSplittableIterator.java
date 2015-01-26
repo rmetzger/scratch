@@ -1,4 +1,4 @@
-package flink.generators;
+package flink.generators.core;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;

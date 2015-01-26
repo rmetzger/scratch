@@ -1,5 +1,3 @@
-package flink.generators;
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,9 @@ package flink.generators;
  * limitations under the License.
  */
 
+package flink.generators.programs;
+
+import flink.generators.core.DistributedTPCH;
 import io.airlift.tpch.LineItem;
 import io.airlift.tpch.Order;
 import org.apache.flink.api.java.DataSet;
@@ -36,7 +37,7 @@ public class TPCHGeneratorExample {
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		DistributedTPCH gen = new DistributedTPCH(env);
-		gen.setScale(100.1);
+		gen.setScale(100.0);
 
 		DataSet<Order> orders = gen.generateOrders();
 

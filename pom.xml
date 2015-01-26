@@ -94,7 +94,7 @@ under the License.
 					</descriptors>
 					<archive>
 						<manifest>
-							<mainClass>flink.generators.TPCHGeneratorExample</mainClass>
+							<mainClass>flink.generators.programs.TPCHGeneratorExample</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
@@ -116,7 +116,7 @@ under the License.
 				<configuration>
 					<archive>
 						<manifestEntries>
-							<Main-Class>flink.generators.TPCHGeneratorExample</Main-Class>
+							<Main-Class>flink.generators.programs.TPCHGeneratorExample</Main-Class>
 						</manifestEntries>
 					</archive>
 				</configuration>
