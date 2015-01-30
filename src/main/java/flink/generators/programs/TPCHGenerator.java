@@ -33,6 +33,11 @@ import io.airlift.tpch.Region;
 import io.airlift.tpch.RegionGenerator;
 import io.airlift.tpch.Supplier;
 import io.airlift.tpch.SupplierGenerator;
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
+
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -41,25 +46,37 @@ import org.apache.flink.api.java.tuple.Tuple2;
 
 public class TPCHGenerator {
 	public static void main(String[] args) throws Exception {
-		// set up the execution environment
+		// Parse and handle arguments
+		ArgumentParser ap = ArgumentParsers.newArgumentParser("Distributed TPCH");
+		ap.defaultHelp(true);
+		ap.addArgument("-s", "--scale").setDefault(1.0).help("TPC H Scale (final Size in GB)");
+		ap.addArgument("-p","--parallelism").setDefault(1).help("Parallelism for program");
+		ap.addArgument("-e", "--extension").setDefault(".csv").help("File extension for generated files");
+		ap.addArgument("-o", "--outpath").setDefault("/tmp/").help("Output directory");
+		
+		Namespace ns = null;
+        try {
+            ns = ap.parseArgs(args);
+        } catch (ArgumentParserException e) {
+            ap.handleError(e);
+            System.exit(1);
+        }
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		env.setDegreeOfParallelism(1);
+		env.setDegreeOfParallelism(ns.getInt("parallelism"));
 		DistributedTPCH gen = new DistributedTPCH(env);
-		gen.setScale(1.0);
+		gen.setScale(ns.getDouble("scale"));
 
-		String base = "/tmp/tpch/";
-		String ext = ".csv";
+		String base = ns.getString("outpath");
+		String ext = ns.getString("extension");
 		gen.generateParts().writeAsFormattedText(base + "parts" + ext, new TpchEntityFormatter());
 		gen.generateLineItems().writeAsFormattedText(base + "lineitems" + ext, new TpchEntityFormatter());
 		gen.generateOrders().writeAsFormattedText(base + "orders" + ext, new TpchEntityFormatter());
 		gen.generateSuppliers().writeAsFormattedText(base + "suppliers" + ext, new TpchEntityFormatter());
-	//	gen.generatePartSuppliers().writeAsFormattedText(base + "partsuppliers" + ext, new TpchEntityFormatter());
-		//gen.generateRegions().writeAsFormattedText(base + "regions" + ext, new TpchEntityFormatter());
-		//gen.generateNations().writeAsFormattedText(base + "nations" + ext, new TpchEntityFormatter());
+		gen.generatePartSuppliers().writeAsFormattedText(base + "partsuppliers" + ext, new TpchEntityFormatter());
+		gen.generateRegions().writeAsFormattedText(base + "regions" + ext, new TpchEntityFormatter());
+		gen.generateNations().writeAsFormattedText(base + "nations" + ext, new TpchEntityFormatter());
 		gen.generateCustomers().writeAsFormattedText(base + "customers" + ext, new TpchEntityFormatter());
 
-		//System.out.println("plan = "+env.getExecutionPlan());
-		// execute program
 		env.execute("Distributed TPCH Generator, Scale = "+gen.getScale());
 	}
 

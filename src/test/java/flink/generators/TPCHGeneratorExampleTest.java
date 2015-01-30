@@ -1,6 +1,8 @@
 package flink.generators;
 
 import flink.generators.core.DistributedTPCH;
+import flink.generators.core.TpchEntityFormatter;
+
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.io.DiscardingOutputFormat;
@@ -33,8 +35,10 @@ public class TPCHGeneratorExampleTest {
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		DistributedTPCH gen = new DistributedTPCH(env);
-		gen.setScale(0.1);
-		String[] methods = new String[] {"generateParts", "generateLineItems"};
+		gen.setScale(0.001);
+		String[] methods = new String[] {"generateParts", "generateLineItems", "generateRegions",
+				"generateOrders", "generateSuppliers", "generatePartSuppliers",
+				"generateNations", "generateCustomers"};
 		for(String method : methods) {
 			Method rMethod = gen.getClass().getMethod(method);
 			DataSet ds = (DataSet) rMethod.invoke(gen);

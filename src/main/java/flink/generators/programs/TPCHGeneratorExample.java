@@ -18,13 +18,21 @@
 
 package flink.generators.programs;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.lang.reflect.Field;
+
 import flink.generators.core.DistributedTPCH;
 import io.airlift.tpch.LineItem;
 import io.airlift.tpch.Order;
+
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.api.java.typeutils.TypeExtractor;
 
 
 /**
@@ -37,27 +45,62 @@ public class TPCHGeneratorExample {
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
 		DistributedTPCH gen = new DistributedTPCH(env);
-		gen.setScale(100.0);
+		gen.setScale(1.0);
 
 		DataSet<Order> orders = gen.generateOrders();
 
 		DataSet<LineItem> lineitem = gen.generateLineItems();
 
-		DataSet<Tuple2<Order, LineItem>> oxl = orders.join(lineitem).where(new KeySelector<Order, Long>() {
-			@Override
-			public Long getKey(Order value) throws Exception {
-				return value.getOrderKey();
-			}
-		}).equalTo(new KeySelector<LineItem, Long>() {
-			@Override
-			public Long getKey(LineItem value) throws Exception {
-				return value.getOrderKey();
-			}
-		});
+		DataSet<Tuple2<Order, LineItem>> oxl = orders.join(lineitem)
+				.where(selectKey("orderKey", Order.class)).equalTo(selectKey("orderKey", LineItem.class));
+		
 		oxl.print();
-
 		// execute program
 		env.execute("Flink Java API Skeleton");
+	}
+	
+	//
+	// --------- Hacky Key selection, allowing easy POJO usage also for GenericTypes. --
+	//
+	
+	@SuppressWarnings("rawtypes")
+	public static KeySelector selectKey(final String field, Class clazz) {
+		return new CheapKeySelector(field, clazz);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static class CheapKeySelector implements KeySelector, ResultTypeQueryable {
+		private transient TypeInformation ti;
+		private Class clazz;
+		private transient Field cField;
+		private String field;
+		public CheapKeySelector(String field, Class clazz) {
+			this.clazz = clazz;
+			this.field = field;
+			try {
+				Field cField = clazz.getDeclaredField(field);
+				ti = TypeExtractor.createTypeInfo(cField.getType());
+				cField.setAccessible(true);
+			} catch (Throwable e) {
+				throw new RuntimeException("Unable to find field "+field+" in class "+clazz);
+			}
+		}
+		
+		@Override
+		public TypeInformation getProducedType() {
+			return ti;
+		}
+		
+		private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException, NoSuchFieldException, SecurityException {
+			in.defaultReadObject();
+			cField = clazz.getDeclaredField(field);
+			cField.setAccessible(true);
+		}
+		
+		@Override
+		public Object getKey(Object value) throws Exception {
+			return cField.get(value);
+		}
 	}
 
 }
