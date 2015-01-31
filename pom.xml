@@ -71,7 +71,11 @@ under the License.
 			<artifactId>argparse4j</artifactId>
 			<version>0.4.4</version>
 		</dependency>
-		
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>16.0.1</version>
+		</dependency>
 		
 		<dependency>
 			<groupId>junit</groupId>

@@ -19,38 +19,20 @@ package flink.generators.programs;
 
 import flink.generators.core.DistributedTPCH;
 import flink.generators.core.TpchEntityFormatter;
-import io.airlift.tpch.Customer;
-import io.airlift.tpch.CustomerGenerator;
-import io.airlift.tpch.LineItem;
-import io.airlift.tpch.LineItemGenerator;
-import io.airlift.tpch.Nation;
-import io.airlift.tpch.NationGenerator;
-import io.airlift.tpch.Order;
-import io.airlift.tpch.OrderGenerator;
-import io.airlift.tpch.Part;
-import io.airlift.tpch.PartGenerator;
-import io.airlift.tpch.Region;
-import io.airlift.tpch.RegionGenerator;
-import io.airlift.tpch.Supplier;
-import io.airlift.tpch.SupplierGenerator;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.io.TextOutputFormat;
-import org.apache.flink.api.java.tuple.Tuple2;
 
 public class TPCHGenerator {
 	public static void main(String[] args) throws Exception {
 		// Parse and handle arguments
 		ArgumentParser ap = ArgumentParsers.newArgumentParser("Distributed TPCH");
 		ap.defaultHelp(true);
-		ap.addArgument("-s", "--scale").setDefault(1.0).help("TPC H Scale (final Size in GB)");
-		ap.addArgument("-p","--parallelism").setDefault(1).help("Parallelism for program");
+		ap.addArgument("-s", "--scale").setDefault(1.0).help("TPC H Scale (final Size in GB)").type(Double.class);
+		ap.addArgument("-p","--parallelism").setDefault(1).help("Parallelism for program").type(Integer.class);
 		ap.addArgument("-e", "--extension").setDefault(".csv").help("File extension for generated files");
 		ap.addArgument("-o", "--outpath").setDefault("/tmp/").help("Output directory");
 		
