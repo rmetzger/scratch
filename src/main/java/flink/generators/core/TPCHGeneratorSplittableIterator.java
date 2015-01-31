@@ -63,20 +63,31 @@ public class TPCHGeneratorSplittableIterator<T> implements SplittableIterator<T>
 
 	//------------------------ Iterator -----------------------------------
 	private static Set<Class<? extends Iterable>> fixedGenerators;
+
+	private static Distributions distributions;
+	private static TextPool smallTextPool;
 	static {
 		fixedGenerators = new HashSet<Class<? extends Iterable>>();
 		fixedGenerators.add(RegionGenerator.class);
 		fixedGenerators.add(NationGenerator.class);
-	}
-	private Iterator<T> iter;
 
-	public TPCHGeneratorSplittableIterator(int partNo, int totalParts, double scale, Class<? extends Iterable<T>> generatorClass) {
 		try {
 			URL resource = Resources.getResource(Distribution.class, "dists.dss");
 			checkState(resource != null, "Distribution file 'dists.dss' not found");
-			Distributions distributions = new Distributions(loadDistribution(Resources.asCharSource(resource, Charsets.UTF_8)));
-			// use per-thread text pool
-			TextPool smallTextPool = new TextPool(1 * 1024 * 1024, distributions); // 1 MB txt pool
+			distributions = new Distributions(loadDistribution(Resources.asCharSource(resource, Charsets.UTF_8)));
+			smallTextPool = new TextPool(1 * 1024 * 1024, distributions); // 1 MB txt pool
+		} catch(Throwable t) {
+			throw new RuntimeException("Unable to load distributions", t);
+		}
+	}
+
+	private Iterator<T> iter;
+
+
+	public TPCHGeneratorSplittableIterator(int partNo, int totalParts, double scale, Class<? extends Iterable<T>> generatorClass) {
+		try {
+
+
 			Constructor<? extends Iterable<T>> generatorCtor;
 			Iterable<T> generator = null;
 			if(fixedGenerators.contains(generatorClass)) {
