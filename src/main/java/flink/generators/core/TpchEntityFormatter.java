@@ -17,12 +17,53 @@
  */
 package flink.generators.core;
 
+import io.airlift.tpch.LineItem;
 import io.airlift.tpch.TpchEntity;
 import org.apache.flink.api.java.io.TextOutputFormat;
 
+import static io.airlift.tpch.GenerateUtils.formatDate;
+import static io.airlift.tpch.GenerateUtils.formatMoney;
+
 public class TpchEntityFormatter<T extends TpchEntity> implements TextOutputFormat.TextFormatter<T> {
+
 	@Override
 	public String format(T value) {
-		return value.toLine();
+		if(value instanceof LineItem) {
+			final StringBuilder lisb = new StringBuilder();
+			final LineItem li = (LineItem) value;
+			lisb.append(li.getOrderKey());
+			lisb.append('|');
+			lisb.append(li.getPartKey());
+			lisb.append('|');
+			lisb.append(li.getSupplierKey());
+			lisb.append('|');
+			lisb.append(li.getLineNumber());
+			lisb.append('|');
+			lisb.append(formatMoney((long) (li.getExtendedPrice()*100)));
+			lisb.append('|');
+			lisb.append(formatMoney((long) (li.getDiscount() * 100)));
+			lisb.append('|');
+			lisb.append(formatMoney((long) (li.getTax() * 100)));
+			lisb.append('|');
+			lisb.append(li.getReturnFlag());
+			lisb.append('|');
+			lisb.append(li.getStatus());
+			lisb.append('|');
+			lisb.append(formatDate(li.getShipDate()));
+			lisb.append('|');
+			lisb.append(formatDate(li.getCommitDate()));
+			lisb.append('|');
+			lisb.append(formatDate(li.getReceiptDate()));
+			lisb.append('|');
+			lisb.append(li.getShipInstructions());
+			lisb.append('|');
+			lisb.append(li.getShipMode());
+			lisb.append('|');
+			lisb.append(li.getComment());
+			lisb.append('|');
+			return lisb.toString();
+		} else {
+			return value.toLine();
+		}
 	}
 }
