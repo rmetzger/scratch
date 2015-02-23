@@ -23,6 +23,7 @@ import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.hadoop.mapred.HadoopOutputFormat;
 import org.apache.flink.api.java.hadoop.mapred.utils.HadoopUtils;
 import org.apache.flink.api.java.hadoop.mapred.wrapper.HadoopDummyReporter;
+import org.apache.flink.api.java.io.DiscardingOuputFormat;
 import org.apache.flink.api.java.operators.DataSource;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -120,7 +121,7 @@ public class Job {
 			if (s.startsWith("2-")) {
 				out2.collect(NullWritable.get(), new Text(s));
 			}
-			out.collect(new Tuple2<NullWritable, Text>(NullWritable.get(), new Text(s)));
+			// out.collect(new Tuple2<NullWritable, Text>(NullWritable.get(), new Text(s)));
 		}
 
 		@Override
