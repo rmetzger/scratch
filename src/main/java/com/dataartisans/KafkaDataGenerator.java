@@ -53,7 +53,7 @@ import org.apache.flink.util.Collector;
  *
  * @see <a href="www.openbsd.org/cgi-bin/man.cgi?query=nc">netcat</a>
  */
-public class SocketTextStreamWordCount {
+public class KafkaDataGenerator {
 
 	private static String[] requestType = {"GET", "POST", "PUT", "DELETE"};
 
@@ -68,6 +68,13 @@ public class SocketTextStreamWordCount {
 		// set up the execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment
 				.getExecutionEnvironment();
+
+		if (args.length != 4) {
+			System.out.println(" Usage:");
+			System.out.println("\tKafkaDataGenerator <numberOfSenders> <kafkaTopic> <kafkaBrokerAddr>" +
+					" <maximumNumberOfElements>");
+			return;
+		}
 
 		int numberOfSenders = Integer.parseInt(args[0]);
 		String kafkaTopic = args[1];

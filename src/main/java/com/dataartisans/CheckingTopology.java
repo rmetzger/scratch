@@ -28,7 +28,14 @@ public class CheckingTopology {
 
 	public static void main(String[] args) {
 
+		if (args.length != 2) {
+			System.out.println(" Usage:");
+			System.out.println("\tCheckingTopology <hdfsFileLocation> <fileForTheResult>");
+			return;
+		}
+
 		String hdfsFileLocation = args[0];
+		String fileForTheResult = args[1];
 
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
@@ -38,10 +45,10 @@ public class CheckingTopology {
 				env.readCsvFile(hdfsFileLocation).fieldDelimiter(",").types(Integer.class, Long.class);
 
 		tuples.groupBy(0)
-				.reduceGroup(new GroupReduceFunction<Tuple2<Integer,Long>, Boolean>() {
+				.reduceGroup(new GroupReduceFunction<Tuple2<Integer, Long>, String>() {
 
 					@Override
-					public void reduce(Iterable<Tuple2<Integer, Long>> iterable, Collector<Boolean> collector) throws Exception {
+					public void reduce(Iterable<Tuple2<Integer, Long>> iterable, Collector<String> collector) throws Exception {
 						OpenBitSet checker = new OpenBitSet();
 
 						for (Tuple2<Integer, Long> fromAndElement : iterable) {
@@ -54,16 +61,16 @@ public class CheckingTopology {
 
 						long firstNotProcessed = checker.nextSetBit(0);
 
-						System.out.println(firstNotProcessed + " is the first num not processed (out of: " + max + ")");
 
 						if (firstNotProcessed != max) {
-							collector.collect(false);
+							collector.collect("Test PASSED");
 						} else {
-							collector.collect(true);
+							collector.collect("Test FAILED");
 						}
+						collector.collect(firstNotProcessed + " is the first num not processed (out of: " + max + ")");
+						collector.collect("----");
 					}
-				})
-				.print();
+				}).writeAsText(fileForTheResult);
 
 		try {
 			env.execute();

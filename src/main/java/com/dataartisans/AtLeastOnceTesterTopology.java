@@ -31,12 +31,21 @@ public class AtLeastOnceTesterTopology {
 	public static void main(String[] args) {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
+		if (args.length != 7) {
+			System.out.println(" Usage:");
+			System.out.println("\tAtLeastOnceTesterTopology <zookeeperHost> <topic> <hdfsWritePath>" +
+					" <killerTopic> <sourceParallelism> <mapParallelism> <sinkParallelism>");
+			return;
+		}
+
 		// zookeeper host address
 		String kafkaHost = args[0];
-
 		String topic = args[1];
 		String hdfsWritePath = args[2];
 		String killerTopic = args[3];
+		int sourceParallelism = Integer.parseInt(args[4]);
+		int mapParallelism = Integer.parseInt(args[5]);
+		int sinkParallelism = Integer.parseInt(args[6]);
 
 		env.addSource(new PersistentKafkaSource<String>(kafkaHost, killerTopic, new KafkaStringSerializationSchema())).addSink(new SinkFunction<String>() {
 			@Override
@@ -52,7 +61,9 @@ public class AtLeastOnceTesterTopology {
 			}
 		}).setParallelism(1);
 
-		env.addSource(new PersistentKafkaSource<String>(kafkaHost, topic, new KafkaStringSerializationSchema())).setParallelism(1)
+		env.addSource(new PersistentKafkaSource<String>(kafkaHost, topic, new KafkaStringSerializationSchema()))
+				.setParallelism(sourceParallelism)
+
 				.map(new MapFunction<String, Tuple2<Integer, Long>>() {
 					@Override
 					public Tuple2<Integer, Long> map(String line) throws Exception {
@@ -64,10 +75,12 @@ public class AtLeastOnceTesterTopology {
 						System.out.println(from + " " + element);
 						return new Tuple2<Integer, Long>(from, element);
 					}
-				}).setParallelism(1)
+				})
+				.setParallelism(mapParallelism)
 
 				// TODO use append writing mode
-				.writeAsCsv(hdfsWritePath, FileSystem.WriteMode.OVERWRITE, 10).setParallelism(1);
+				.writeAsCsv(hdfsWritePath, FileSystem.WriteMode.OVERWRITE, 10)
+				.setParallelism(sinkParallelism);
 
 		try {
 			env.execute();
