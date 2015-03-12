@@ -17,14 +17,25 @@
 
 package com.dataartisans;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.hadoop.mapred.HadoopOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.function.sink.FileSinkFunctionByMillis;
 import org.apache.flink.streaming.api.function.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.kafka.api.simple.PersistentKafkaSource;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextOutputFormat;
 
 public class AtLeastOnceTesterTopology {
 
@@ -61,7 +72,7 @@ public class AtLeastOnceTesterTopology {
 			}
 		}).setParallelism(1);
 
-		env.addSource(new PersistentKafkaSource<String>(kafkaHost, topic, new KafkaStringSerializationSchema()))
+		final DataStream result = env.addSource(new PersistentKafkaSource<String>(kafkaHost, topic, new KafkaStringSerializationSchema()))
 				.setParallelism(sourceParallelism)
 
 				.map(new MapFunction<String, Tuple2<Integer, Long>>() {
@@ -73,13 +84,19 @@ public class AtLeastOnceTesterTopology {
 						long element = Long.parseLong(split[1].split(":")[1]);
 
 						System.out.println(from + " " + element);
-						return new Tuple2<Integer, Long>(from, element);
+						return new MyTuple2Writable(from, element);
 					}
 				})
-				.setParallelism(mapParallelism)
+				.setParallelism(mapParallelism);
 
-				// TODO use append writing mode
-				.writeAsCsv(hdfsWritePath, FileSystem.WriteMode.OVERWRITE, 10)
+		//using HDFS append mode
+		JobConf conf = new JobConf();
+		conf.set("dfs.support.append", "true");
+		HadoopOutputFormat wrapper = new HadoopOutputFormat(new TextOutputFormat<NullWritable,MyTuple2Writable>(), conf);
+		org.apache.hadoop.mapred.FileOutputFormat.setOutputPath(conf, new Path(hdfsWritePath));
+
+//				.writeAsCsv(hdfsWritePath, FileSystem.WriteMode.OVERWRITE, 10)
+		result.addSink(new FileSinkFunctionByMillis<LongWritable>(wrapper, 0L))
 				.setParallelism(sinkParallelism);
 
 		try {
@@ -88,6 +105,26 @@ public class AtLeastOnceTesterTopology {
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	public static class MyTuple2Writable extends Tuple2<Integer, Long> implements Writable {
+
+		MyTuple2Writable(Integer f0, Long f1){
+			this.f0 = f0;
+			this.f1 = f1;
+		}
+
+		@Override
+		public void write(DataOutput dataOutput) throws IOException {
+			dataOutput.writeInt(f0);
+			dataOutput.writeLong(f1);
+		}
+
+		@Override
+		public void readFields(DataInput dataInput) throws IOException {
+			f0 = dataInput.readInt();
+			f1 = dataInput.readLong();
 		}
 	}
 
