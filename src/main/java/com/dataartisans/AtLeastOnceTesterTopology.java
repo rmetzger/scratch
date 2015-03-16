@@ -39,8 +39,9 @@ import org.apache.hadoop.mapred.TextOutputFormat;
 
 public class AtLeastOnceTesterTopology {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.getConfig().setNumberOfExecutionRetries(10);
 
 		if (args.length != 7) {
 			System.out.println(" Usage:");
@@ -99,13 +100,7 @@ public class AtLeastOnceTesterTopology {
 		result.addSink(new FileSinkFunctionByMillis<LongWritable>(wrapper, 0L))
 				.setParallelism(sinkParallelism);
 
-		try {
-			env.execute();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		env.execute();
 	}
 
 	public static class MyTuple2Writable extends Tuple2<Integer, Long> implements Writable {
