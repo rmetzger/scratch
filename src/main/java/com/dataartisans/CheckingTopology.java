@@ -26,7 +26,7 @@ import org.apache.lucene.util.OpenBitSet;
 
 public class CheckingTopology {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 
 		if (args.length != 2) {
 			System.out.println(" Usage:");
@@ -72,10 +72,6 @@ public class CheckingTopology {
 					}
 				}).writeAsText(fileForTheResult);
 
-		try {
-			env.execute();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		env.execute();
 	}
 }
