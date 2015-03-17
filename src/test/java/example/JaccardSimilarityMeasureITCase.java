@@ -35,7 +35,7 @@ public class JaccardSimilarityMeasureITCase extends MultipleProgramsTestBase {
 		resultPath = tempFolder.newFile().toURI().toString();
 
 		File edgesFile = tempFolder.newFile();
-		//Files.write(JaccardSimilarityMeasureData.EDGES, edgesFile, Charsets.UTF_8);
+		Files.write(JaccardSimilarityMeasureData.EDGES, edgesFile, Charsets.UTF_8);
 
 		edgesPath = edgesFile.toURI().toString();
 	}
