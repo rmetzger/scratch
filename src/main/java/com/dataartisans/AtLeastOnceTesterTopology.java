@@ -22,8 +22,10 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.hadoop.mapred.HadoopOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -60,7 +62,7 @@ public class AtLeastOnceTesterTopology {
 		int mapParallelism = Integer.parseInt(args[5]);
 		int sinkParallelism = Integer.parseInt(args[6]);
 
-		env.addSource(new PersistentKafkaSource<String>(kafkaHost, killerTopic, new KafkaStringSerializationSchema())).addSink(new SinkFunction<String>() {
+	/*	env.addSource(new PersistentKafkaSource<String>(kafkaHost, killerTopic, new KafkaStringSerializationSchema())).addSink(new SinkFunction<String>() {
 			@Override
 			public void invoke(String s) throws Exception {
 				if (s.equals("kill")) {
@@ -72,14 +74,27 @@ public class AtLeastOnceTesterTopology {
 			public void cancel() {
 
 			}
-		}).setParallelism(1);
+		}).setParallelism(1); */
 
 		final DataStream result = env.addSource(new PersistentKafkaSource<String>(kafkaHost, topic, new KafkaStringSerializationSchema()))
 				.setParallelism(sourceParallelism)
 
-				.map(new MapFunction<String, Tuple2<Integer, Long>>() {
+				.map(new RichMapFunction<String, Tuple2<Integer, Long>>() {
+					@Override
+					public void open(Configuration parameters) throws Exception {
+						super.open(parameters);
+						System.out.println("Opening receiving mapper");
+					}
+
+					@Override
+					public void close() throws Exception {
+						super.close();
+						System.out.println("Closing receiving mapper");
+					}
+
 					@Override
 					public Tuple2<Integer, Long> map(String line) throws Exception {
+						System.out.println("received: "+line);
 						String[] split = line.split(" ");
 
 						int from = Integer.parseInt(split[0].split(":")[1]);
@@ -101,7 +116,7 @@ public class AtLeastOnceTesterTopology {
 		result.addSink(new FileSinkFunctionByMillis<LongWritable>(wrapper, 0L))
 				.setParallelism(sinkParallelism);
 
-		env.execute();
+		env.execute("Test topology (reading from kafka)");
 	}
 
 	public static class MyTuple2Writable extends Tuple2<Integer, Long> implements Writable {
