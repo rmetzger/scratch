@@ -42,6 +42,7 @@ import org.apache.hadoop.mapred.TextOutputFormat;
 public class AtLeastOnceTesterTopology {
 
 	public static void main(String[] args) throws Exception {
+
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.getConfig().setNumberOfExecutionRetries(10);
 		env.enableMonitoring(5000);

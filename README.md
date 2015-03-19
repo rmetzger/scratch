@@ -28,5 +28,28 @@ Start consuming test topology:
 start data generation topology:
 
 ```
-./flink/build-target/bin/flink run -p 1 -c com.dataartisans.KafkaDataGenerator target/kafka-datagen-1.0-SNAPSHOT.jar 1 test-topic  hdp22-m.c.astral-sorter-757.internal:6667 500
+../flink/build-target/bin/flink run -p 1 -c com.dataartisans.KafkaDataGenerator target/kafka-datagen-1.0-SNAPSHOT.jar 1 test-topic  hdp22-m.c.astral-sorter-757.internal:6667 500
 ```
+
+
+#####################################################################
+
+Second test:
+Topic with 5 partitions
+
+Reader with parallelism of 10.
+
+## create topic (5 partitions)
+/usr/hdp/2.2.0.0-2041/kafka/bin/kafka-topics.sh --create --topic five-topic -partitions 5 --replication-factor 1 --zookeeper hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181
+
+
+## start reader
+../flink/build-target/bin/flink run -p 10 -c com.dataartisans.AtLeastOnceTesterTopology ./target/kafka-datagen-1.0-SNAPSHOT.jar hdp22-m.c.astral-sorter-757.internal five-topic hdfs://hdp22-m.c.astral-sorter-757.internal:8020/user/robert/kafka-out killer-topic 10 10 10
+
+## start 5 senders
+
+../flink/build-target/bin/flink run -p 5 -c com.dataartisans.KafkaDataGenerator target/kafka-datagen-1.0-SNAPSHOT.jar 5 five-topic  hdp22-m.c.astral-sorter-757.internal:6667 50
+
+
+## start console consumer for topic:
+/usr/hdp/2.2.0.0-2041/kafka/bin/kafka-console-consumer.sh --zookeeper hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 --topic five-topic

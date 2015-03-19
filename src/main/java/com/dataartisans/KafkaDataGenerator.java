@@ -125,11 +125,6 @@ public class KafkaDataGenerator {
 					Thread.sleep(waitTime);
 				}
 
-				// sending quit message
-				// this assumes no more partitions than 200 and KafkaDistributePartitioner
-				for (int i = 0; i < 200; i++) {
-					out.collect("q");
-				}
 			}
 		}).addSink(new KafkaSink<String>(kafkaBrokerAddr, kafkaTopic, new KafkaStringSerializationSchema()));
 
