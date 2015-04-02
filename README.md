@@ -15,7 +15,7 @@ export YARN_CONF_DIR=/etc/hadoop/conf/
 
 Create topics: (killer-topic, test-topic)
 ```
-/usr/hdp/2.2.3.0-2611/kafka/bin/kafka-topics.sh --create --topic abtest-topic -partitions 1 --replication-factor 1 --zookeeper hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181
+/usr/hdp/2.2.3.0-2611/kafka/bin/kafka-topics.sh --create --topic abtest-topic --partitions 1 --replication-factor 1 --zookeeper hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181
 
 ```
 
@@ -44,7 +44,7 @@ Reader with parallelism of 10.
 
 
 ## start reader
-../flink/build-target/bin/flink run -p 10 -c com.dataartisans.AtLeastOnceTesterTopology ./target/kafka-datagen-1.0-SNAPSHOT.jar hdp22-m.c.astral-sorter-757.internal five-topic hdfs://hdp22-m.c.astral-sorter-757.internal:8020/user/robert/kafka-out killer-topic 10 10 10
+../flink/build-target/bin/flink run -p 5 -c com.dataartisans.AtLeastOnceTesterTopology ./target/kafka-datagen-1.0-SNAPSHOT.jar hdp22-m.c.astral-sorter-757.internal five-topic hdfs://hdp22-m.c.astral-sorter-757.internal:8020/user/robert/kafka-out killer-topic 5 5 5
 
 ## start 5 senders
 

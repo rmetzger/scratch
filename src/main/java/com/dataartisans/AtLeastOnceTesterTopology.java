@@ -45,7 +45,7 @@ public class AtLeastOnceTesterTopology {
 
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.getConfig().setNumberOfExecutionRetries(10);
-		env.enableMonitoring(5000);
+		env.enableCheckpointing(5000);
 
 		if (args.length != 7) {
 			System.out.println(" Usage:");
@@ -55,7 +55,7 @@ public class AtLeastOnceTesterTopology {
 		}
 
 		// zookeeper host address
-		String kafkaHost = args[0];
+		String zookeeperHost = args[0];
 		String topic = args[1];
 		String hdfsWritePath = args[2];
 		String killerTopic = args[3];
@@ -77,7 +77,7 @@ public class AtLeastOnceTesterTopology {
 			}
 		}).setParallelism(1); */
 
-		final DataStream result = env.addSource(new PersistentKafkaSource<String>(kafkaHost, topic, new KafkaStringSerializationSchema()))
+		final DataStream result = env.addSource(new PersistentKafkaSource<String>(zookeeperHost, topic, new KafkaStringSerializationSchema()))
 				.setParallelism(sourceParallelism)
 
 				.map(new RichMapFunction<String, Tuple2<Integer, Long>>() {

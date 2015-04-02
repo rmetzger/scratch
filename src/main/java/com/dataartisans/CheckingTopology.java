@@ -39,7 +39,7 @@ public class CheckingTopology {
 
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
-		env.setDegreeOfParallelism(1);
+		env.setParallelism(1);
 
 		DataSource<Tuple2<Integer, Long>> tuples =
 				env.readCsvFile(hdfsFileLocation).fieldDelimiter(",").types(Integer.class, Long.class);

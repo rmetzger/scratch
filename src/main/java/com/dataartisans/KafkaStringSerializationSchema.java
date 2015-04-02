@@ -17,8 +17,9 @@
 
 package com.dataartisans;
 
-import org.apache.flink.streaming.connectors.util.DeserializationSchema;
-import org.apache.flink.streaming.connectors.util.SerializationSchema;
+
+import org.apache.flink.streaming.util.serialization.DeserializationSchema;
+import org.apache.flink.streaming.util.serialization.SerializationSchema;
 
 public class KafkaStringSerializationSchema implements DeserializationSchema<String>, SerializationSchema<String, byte[]> {
 
