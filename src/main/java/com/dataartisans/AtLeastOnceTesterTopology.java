@@ -21,27 +21,24 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.hadoop.mapred.HadoopOutputFormat;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.function.sink.FileSinkFunctionByMillis;
-import org.apache.flink.streaming.api.function.sink.SinkFunction;
-import org.apache.flink.streaming.connectors.kafka.api.simple.PersistentKafkaSource;
+import org.apache.flink.streaming.api.functions.sink.FileSinkFunctionByMillis;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.flink.streaming.connectors.kafka.api.persistent.*;
 
 public class AtLeastOnceTesterTopology {
 
-	public static void main(String[] args) throws Exception {
+/*	public static void main(String[] args) throws Exception {
 
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.getConfig().setNumberOfExecutionRetries(10);
@@ -77,7 +74,7 @@ public class AtLeastOnceTesterTopology {
 			}
 		}).setParallelism(1); */
 
-		final DataStream result = env.addSource(new PersistentKafkaSource<String>(zookeeperHost, topic, new KafkaStringSerializationSchema()))
+	/*	final DataStream result = env.addSource(new PersistentKafkaSource<String>(zookeeperHost, topic, new KafkaStringSerializationSchema()))
 				.setParallelism(sourceParallelism)
 
 				.map(new RichMapFunction<String, Tuple2<Integer, Long>>() {
@@ -139,5 +136,5 @@ public class AtLeastOnceTesterTopology {
 			f1 = dataInput.readLong();
 		}
 	}
-
+ */
 }

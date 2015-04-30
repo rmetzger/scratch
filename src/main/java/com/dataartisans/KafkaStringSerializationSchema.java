@@ -18,6 +18,8 @@
 package com.dataartisans;
 
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
 
@@ -40,4 +42,8 @@ public class KafkaStringSerializationSchema implements DeserializationSchema<Str
 		return new String(message);
 	}
 
+	@Override
+	public TypeInformation<String> getProducedType() {
+		return TypeExtractor.getForClass(String.class);
+	}
 }
