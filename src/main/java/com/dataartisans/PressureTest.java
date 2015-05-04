@@ -64,12 +64,14 @@ public class PressureTest {
 		final int logFreq = Integer.valueOf(args[3]);
 		DataStream<Workload> data = see.addSource(new RichParallelSourceFunction<Workload>() {
 
+			public boolean running = true;
+
 			@Override
 			public void run(Collector<Workload> collector) throws Exception {
 				long element = 0;
 				final int partition = getRuntimeContext().getIndexOfThisSubtask();
 				final byte[] data = new byte[dataSize];
-				while (true) {
+				while (running) {
 					if(element % logFreq == 0) {
 						LOG.info("Elements processed {}, data send {} GB", element, ((dataSize*element)/(1024*1024*1024)) );
 					}
@@ -79,7 +81,7 @@ public class PressureTest {
 
 			@Override
 			public void cancel() {
-
+				this.running = false;
 			}
 		}).setParallelism(sourcePar);
 
