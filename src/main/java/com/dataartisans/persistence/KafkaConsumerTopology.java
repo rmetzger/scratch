@@ -28,7 +28,7 @@ public class KafkaConsumerTopology {
 		StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
 		Properties props = new Properties();
 		props.setProperty("auto.commit.enable", "false");
-		props.setProperty("groupid", "flink-kafka-consumer-topology");
+		props.setProperty("group.id", "flink-kafka-consumer-topology");
 		props.setProperty("zookeeper.connect", zkConnect);
 		final ConsumerConfig consumerConfig = new ConsumerConfig(props);
 		DataStream<KafkaMessage> inStream = see.addSource(new PersistentKafkaSource<KafkaMessage>(topicName,
