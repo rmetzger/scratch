@@ -3,7 +3,7 @@ package com.dataartisans;
 import org.apache.flink.api.common.functions.RichFilterFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.function.source.RichParallelSourceFunction;
+import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +19,10 @@ public class PressureTest {
 		private byte[] data;
 		private int partition;
 		private long element;
+
+		public Workload() {
+
+		}
 
 		public Workload(byte[] data, int partition, long element) {
 			this.data = data;
