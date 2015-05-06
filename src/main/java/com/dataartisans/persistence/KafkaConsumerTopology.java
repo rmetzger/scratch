@@ -33,6 +33,7 @@ public class KafkaConsumerTopology {
 		props.setProperty("auto.commit.enable", "false");
 		props.setProperty("group.id", "flink-kafka-consumer-topology");
 		props.setProperty("zookeeper.connect", zkConnect);
+		props.setProperty("auto.offset.reset", args[6]);
 		final ConsumerConfig consumerConfig = new ConsumerConfig(props);
 		DataStream<KafkaMessage> inStream = see.addSource(new PersistentKafkaSource<KafkaMessage>(topicName,
 				new Utils.TypeInformationSerializationSchema<KafkaMessage>(new KafkaMessage(), see.getConfig()),
