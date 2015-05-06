@@ -64,3 +64,12 @@ Zookeeper connect: hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astra
 
 export YARN_CONF_DIR=/etc/hadoop/conf
 ./bin/yarn-session.sh -n 2 -s 4 -tm 768 -jm 768 -D taskmanager.memory.fraction=0.001
+
+
+write / generate
+
+read 
+./bin/flink run -c com.dataartisans.persistence.KafkaConsumerTopology /home/robert/scratch/target/kafka-datagen-1.0-SNAPSHOT.jar ignore 8 8 1000 test hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 smallest
+
+offset checker
+/usr/hdp/current/kafka-broker/bin/kafka-run-class.sh kafka.tools.ConsumerOffsetChecker --zkconnect hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 --topic test --group flink-kafka-consumer-topology

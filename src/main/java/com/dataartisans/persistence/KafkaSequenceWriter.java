@@ -19,7 +19,7 @@ public class KafkaSequenceWriter {
 		final int sleep = Integer.valueOf(args[3]);
 		final String topicName = args[4];
 		final String brokerList = args[5];
-		final long elementCount = Long.getLong(args[6]);
+		final long elementCount = Long.parseLong(args[6]);
 		DataStream<KafkaMessage> data = see.addSource(new RichParallelSourceFunction<KafkaMessage>() {
 
 			boolean running = true;
