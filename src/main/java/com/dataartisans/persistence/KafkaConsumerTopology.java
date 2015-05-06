@@ -45,7 +45,7 @@ public class KafkaConsumerTopology {
 			public KafkaMessage map(KafkaMessage value) throws Exception {
 				return value;
 			}
-		}).setChainingStrategy(StreamOperator.ChainingStrategy.NEVER).filter(new RichFilterFunction<KafkaMessage>() {
+		}).disableChaining().filter(new RichFilterFunction<KafkaMessage>() {
 			long count = 0;
 			BitSet checker = new BitSet(16000); // thats only the initial size
 
