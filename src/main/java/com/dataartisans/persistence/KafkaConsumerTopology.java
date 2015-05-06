@@ -13,7 +13,7 @@ import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.BitSet;
+import java.util.Arrays;
 import java.util.Properties;
 
 public class KafkaConsumerTopology {
@@ -26,8 +26,9 @@ public class KafkaConsumerTopology {
 		final int log = Integer.valueOf(args[3]);
 		final String topicName = args[4];
 		final String zkConnect = args[5];
-		final long numElements = Long.valueOf(args[7]);
+		final int numElements = Integer.valueOf(args[7]);
 		int sleep = Integer.valueOf(args[8]);
+		int numDuplicates = Integer.valueOf(args[9]);
 
 		StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
 		see.enableCheckpointing(500);
@@ -44,61 +45,68 @@ public class KafkaConsumerTopology {
 				consumerConfig)).setParallelism(sourcePar);
 
 		// source --> map -->  (discarding) filter (unchained)
-		DataStream<Long> finalCount = inStream.map(new MapFunction<KafkaMessage, KafkaMessage>() {
+		DataStream<Integer> finalCount = inStream.map(new MapFunction<KafkaMessage, KafkaMessage>() {
 			@Override
 			public KafkaMessage map(KafkaMessage value) throws Exception {
 				return value;
 			}
-		}).disableChaining().flatMap(new Checker(log, numElements, sleep)).setParallelism(sinkPar);
+		}).disableChaining().flatMap(new Checker(log, numElements, sleep, numDuplicates)).setParallelism(sinkPar);
 		finalCount.print();
 
 		see.execute("Kafka Consumer Topology");
 	}
 
-	public static class Checker extends RichFlatMapFunction<KafkaMessage, Long> implements CheckpointedAsynchronously<Tuple2<Long, BitSet>> {
+	public static class Checker extends RichFlatMapFunction<KafkaMessage, Integer>
+			implements CheckpointedAsynchronously<Tuple2<Integer, int[]>> {
 
 		int log;
-		long numElements;
+		int numElements;
 		private long sleep;
+		private int numDuplicates;
 
-		public Checker(int log, long numElements, long s) {
+		public Checker(int log, int numElements, long s, int numDuplicates) {
 			this.log = log;
 			this.numElements = numElements;
 			this.sleep = s;
+			checker = new int[numElements];
+			this.numDuplicates = numDuplicates;
 		}
 
-		long count = 0;
-		BitSet checker = new BitSet(16000); // thats only the initial size
+		int count = 0;
+		int[] checker;
 
 		@Override
-		public void flatMap(KafkaMessage value, Collector<Long> col) throws Exception {
-			if (checker.get((int) value.offset)) {
-				LOG.warn("Bit {} in {} already set", value.offset, checker);
-				throw new RuntimeException("Bit " + value.offset + " already set");
-			}
-			checker.set((int) value.offset);
+		public void flatMap(KafkaMessage value, Collector<Integer> col) throws Exception {
+			getRuntimeContext().getLongCounter("counter").add(1L);
+			
+			checker[(int)value.offset]++;
 			Thread.sleep(sleep);
 			count++;
 			if (count % log == 0) {
-				LOG.info("Received {} elements from Kafka. Highest element seen {}", count, checker.nextSetBit(0));
+				LOG.info("Received {} elements from Kafka.", count);
 			}
 			if(count == numElements) {
 				LOG.info("Final count "+count);
+				for(int i = 0; i < checker.length; i++) {
+					if(checker[i] > numDuplicates) {
+						throw new RuntimeException("Saw "+checker[i]+" duplicates, but only "+numDuplicates+" were allowed on "+i+" in "+Arrays.toString(checker));
+					}
+				}
 				col.collect(count);
 			}
 		}
 
 		@Override
-		public Tuple2<Long, BitSet> snapshotState(long checkpointId, long timestamp) throws Exception {
+		public Tuple2<Integer, int[]> snapshotState(long checkpointId, long timestamp) throws Exception {
 			LOG.info("Checkpointing state: "+count+" on checkpoint "+checkpointId);
-			return new Tuple2<Long, BitSet>(count, (BitSet) checker.clone());
+			return new Tuple2<Integer, int[]>(count, Arrays.copyOf(checker, checker.length));
 		}
 
 		@Override
-		public void restoreState(Tuple2<Long, BitSet> oldState) {
+		public void restoreState(Tuple2<Integer, int[]> oldState) {
 			LOG.info("Restarting from old state "+oldState);
 			count = oldState.f0;
-			checker = (BitSet) oldState.f1.clone();
+			checker = Arrays.copyOf(oldState.f1, oldState.f1.length);
 		}
 	}
 }
