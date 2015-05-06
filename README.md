@@ -53,3 +53,14 @@ Reader with parallelism of 10.
 
 ## start console consumer for topic:
 /usr/hdp/2.2.0.0-2041/kafka/bin/kafka-console-consumer.sh --zookeeper hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 --topic five-topic
+
+
+###################### NEW TESTS ######################################
+
+Zookeeper connect: hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181
+
+
+./bin/flink run -c com.dataartisans.persistence.OffsetUtil /home/robert/scratch/target/kafka-datagen-1.0-SNAPSHOT.jar get hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 flink-kafka-consumer-topology test 0
+
+export YARN_CONF_DIR=/etc/hadoop/conf
+./bin/yarn-session.sh -n 2 -s 4 -tm 768 -jm 768 -D taskmanager.memory.fraction=0.001

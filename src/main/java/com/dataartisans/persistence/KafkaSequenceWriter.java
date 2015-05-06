@@ -8,7 +8,6 @@ import org.apache.flink.streaming.connectors.kafka.api.KafkaSink;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.flink.util.Collector;
 
-import java.util.Properties;
 
 public class KafkaSequenceWriter {
 
@@ -20,6 +19,7 @@ public class KafkaSequenceWriter {
 		final int sleep = Integer.valueOf(args[3]);
 		final String topicName = args[4];
 		final String brokerList = args[5];
+		final long elementCount = Long.getLong(args[6]);
 		DataStream<KafkaMessage> data = see.addSource(new RichParallelSourceFunction<KafkaMessage>() {
 
 			boolean running = true;
@@ -30,6 +30,9 @@ public class KafkaSequenceWriter {
 				int part = getRuntimeContext().getIndexOfThisSubtask();
 				byte[] data = new byte[bytes];
 				while (running) {
+					if(count == elementCount) {
+						break;
+					}
 					collector.collect(new KafkaMessage(count++, part, data));
 					Thread.sleep(sleep);
 				}
