@@ -68,18 +68,18 @@ public class KafkaConsumerTopology {
 			this.log = log;
 			this.numElements = numElements;
 			this.sleep = s;
-			checker = new int[numElements];
+	//		checker = new int[numElements];
 			this.numDuplicates = numDuplicates;
 		}
 
 		int count = 0;
-		int[] checker;
+	//	int[] checker;
 
 		@Override
 		public void flatMap(KafkaMessage value, Collector<Integer> col) throws Exception {
 			getRuntimeContext().getLongCounter("counter").add(1L);
-			
-			checker[(int)value.offset]++;
+
+		//	checker[(int)value.offset]++;
 			Thread.sleep(sleep);
 			count++;
 			if (count % log == 0) {
@@ -87,11 +87,11 @@ public class KafkaConsumerTopology {
 			}
 			if(count == numElements) {
 				LOG.info("Final count "+count);
-				for(int i = 0; i < checker.length; i++) {
+		/*		for(int i = 0; i < checker.length; i++) {
 					if(checker[i] > numDuplicates) {
 						throw new RuntimeException("Saw "+checker[i]+" duplicates, but only "+numDuplicates+" were allowed on "+i+" in "+Arrays.toString(checker));
 					}
-				}
+				} */
 				col.collect(count);
 			}
 		}
@@ -99,14 +99,14 @@ public class KafkaConsumerTopology {
 		@Override
 		public Tuple2<Integer, int[]> snapshotState(long checkpointId, long timestamp) throws Exception {
 			LOG.info("Checkpointing state: "+count+" on checkpoint "+checkpointId);
-			return new Tuple2<Integer, int[]>(count, Arrays.copyOf(checker, checker.length));
+			return new Tuple2<Integer, int[]>(count, /*Arrays.copyOf(checker, checker.length) */ null);
 		}
 
 		@Override
 		public void restoreState(Tuple2<Integer, int[]> oldState) {
 			LOG.info("Restarting from old state "+oldState);
 			count = oldState.f0;
-			checker = Arrays.copyOf(oldState.f1, oldState.f1.length);
+			//checker = Arrays.copyOf(oldState.f1, oldState.f1.length);
 		}
 	}
 }
