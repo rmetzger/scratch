@@ -52,7 +52,7 @@ Reader with parallelism of 10.
 
 
 ## start console consumer for topic:
-/usr/hdp/2.2.0.0-2041/kafka/bin/kafka-console-consumer.sh --zookeeper hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 --topic five-topic
+/usr/hdp/current/kafka/bin/kafka-console-consumer.sh --zookeeper hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 --topic five-topic
 
 
 ###################### NEW TESTS ######################################
@@ -67,6 +67,11 @@ export YARN_CONF_DIR=/etc/hadoop/conf
 
 
 write / generate
+
+./bin/flink run -c com.dataartisans.persistence.KafkaSequenceWriter /home/robert/scratch/target/kafka-datagen-1.0-SNAPSHOT.jar 16 1 8 3 10k hdp22-w-1.c.astral-sorter-757.internal:6667,hdp22-w-0.c.astral-sorter-757.internal:6667,hdp22-m.c.astral-sorter-757.internal:6667 10000
+
+read using console reader:
+./bin/flink run -c com.dataartisans.persistence.KafkaSequenceWriter /home/robert/scratch/target/kafka-datagen-1.0-SNAPSHOT.jar 16 1 8 3 10k hdp22-w-1.c.astral-sorter-757.internal:6667,hdp22-w-0.c.astral-sorter-757.internal:6667,hdp22-m.c.astral-sorter-757.internal:6667 10000
 
 read 
 ./bin/flink run -c com.dataartisans.persistence.KafkaConsumerTopology /home/robert/scratch/target/kafka-datagen-1.0-SNAPSHOT.jar ignore 8 8 1000 test hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 smallest

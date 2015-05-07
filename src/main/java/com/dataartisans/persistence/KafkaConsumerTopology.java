@@ -32,7 +32,7 @@ public class KafkaConsumerTopology {
 
 		StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
 		see.enableCheckpointing(500);
-		see.setNumberOfExecutionRetries(0);
+		see.setNumberOfExecutionRetries(15);
 		
 		Properties props = new Properties();
 		props.setProperty("auto.commit.enable", "false");
