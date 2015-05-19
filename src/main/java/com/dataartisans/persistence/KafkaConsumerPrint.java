@@ -14,23 +14,22 @@ import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Properties;
 
-public class KafkaConsumerTopology {
+/**
+ * Simple consumer which has one unchained mapper and is printing everything to
+ * stdout
+ */
+public class KafkaConsumerPrint {
 
-	private static final Logger LOG = LoggerFactory.getLogger(KafkaConsumerTopology.class);
+	private static final Logger LOG = LoggerFactory.getLogger(KafkaConsumerPrint.class);
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool params = ParameterTool.fromArgs(args);
 		final int sourcePar = params.getInt("sourcePar");
 		final int sinkPar = params.getInt("sinkPar");
-		final int log = params.getInt("logIntervall");
 		final String topicName = params.get("topicName");
 		final String zkConnect = params.get("zkConnect");
-		final int numElements = params.getInt("numElements");
-		int sleep = params.getInt("sleep");
-		int numDuplicates = params.getInt("numDuplicates");
 
 		StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
 		see.enableCheckpointing(500);
@@ -53,63 +52,16 @@ public class KafkaConsumerTopology {
 			public KafkaMessage map(KafkaMessage value) throws Exception {
 				return value;
 			}
-		}).disableChaining().flatMap(new Checker(log, numElements, sleep, numDuplicates)).setParallelism(sinkPar);
+		}).disableChaining().flatMap(new RichFlatMapFunction<KafkaMessage, Integer>() {
+			@Override
+			public void flatMap(KafkaMessage kafkaMessage, Collector<Integer> collector) throws Exception {
+				LOG.info("Got KafkaMessage: {}", kafkaMessage);
+			}
+		}).setParallelism(sinkPar);
+		// this is going to be empty
 		finalCount.print();
 
 		see.execute("Kafka Consumer Topology");
 	}
 
-	public static class Checker extends RichFlatMapFunction<KafkaMessage, Integer>
-			implements CheckpointedAsynchronously<Tuple2<Integer, int[]>> {
-
-		int log;
-		int numElements;
-		private long sleep;
-		private int numDuplicates;
-
-		public Checker(int log, int numElements, long s, int numDuplicates) {
-			this.log = log;
-			this.numElements = numElements;
-			this.sleep = s;
-	//		checker = new int[numElements];
-			this.numDuplicates = numDuplicates;
-		}
-
-		int count = 0;
-	//	int[] checker;
-
-		@Override
-		public void flatMap(KafkaMessage value, Collector<Integer> col) throws Exception {
-			getRuntimeContext().getLongCounter("counter").add(1L);
-
-		//	checker[(int)value.offset]++;
-			Thread.sleep(sleep);
-			count++;
-			if (count % log == 0) {
-				LOG.info("Received {} elements from Kafka.", count);
-			}
-			if(count == numElements) {
-				LOG.info("Final count "+count);
-		/*		for(int i = 0; i < checker.length; i++) {
-					if(checker[i] > numDuplicates) {
-						throw new RuntimeException("Saw "+checker[i]+" duplicates, but only "+numDuplicates+" were allowed on "+i+" in "+Arrays.toString(checker));
-					}
-				} */
-				col.collect(count);
-			}
-		}
-
-		@Override
-		public Tuple2<Integer, int[]> snapshotState(long checkpointId, long timestamp) throws Exception {
-			LOG.info("Checkpointing state: "+count+" on checkpoint "+checkpointId);
-			return new Tuple2<Integer, int[]>(count, /*Arrays.copyOf(checker, checker.length) */ null);
-		}
-
-		@Override
-		public void restoreState(Tuple2<Integer, int[]> oldState) {
-			LOG.info("Restarting from old state "+oldState);
-			count = oldState.f0;
-			//checker = Arrays.copyOf(oldState.f1, oldState.f1.length);
-		}
-	}
 }

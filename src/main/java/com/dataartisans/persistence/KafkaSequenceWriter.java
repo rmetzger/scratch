@@ -1,5 +1,6 @@
 package com.dataartisans.persistence;
 
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
@@ -7,21 +8,28 @@ import org.apache.flink.streaming.connectors.kafka.Utils;
 import org.apache.flink.streaming.connectors.kafka.api.KafkaSink;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.flink.util.Collector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class KafkaSequenceWriter {
 
-	public static void main(String[] args) throws Exception {
-		StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-		final int bytes = Integer.valueOf(args[0]);
-		final int sourcePar = Integer.valueOf(args[1]);
-		final int sinkPar = Integer.valueOf(args[2]);
-		final int sleep = Integer.valueOf(args[3]);
-		final String topicName = args[4];
-		final String brokerList = args[5];
-		final long elementCount = Long.parseLong(args[6]);
-		DataStream<KafkaMessage> data = see.addSource(new RichParallelSourceFunction<KafkaMessage>() {
+	private static final Logger LOG = LoggerFactory.getLogger(KafkaSequenceWriter.class);
 
+	public static void main(String[] args) throws Exception {
+		ParameterTool params = ParameterTool.fromArgs(args);
+		StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+		see.getConfig().setGlobalJobParameters(params);
+
+		final int bytes = params.getInt("bytes");
+		final int sourcePar = params.getInt("sourcePar");
+		final int sinkPar = params.getInt("sinkPar");
+		final int sleep = params.getInt("sleep");
+		final String topicName = params.get("topicName");
+		final String brokerList = params.get("brokers");
+		final long elementCount = params.getLong("elementCount", 100000L);
+
+		DataStream<KafkaMessage> data = see.addSource(new RichParallelSourceFunction<KafkaMessage>() {
 			boolean running = true;
 
 			@Override
@@ -33,7 +41,9 @@ public class KafkaSequenceWriter {
 					if(count == elementCount) {
 						break;
 					}
-					collector.collect(new KafkaMessage(count++, part, data));
+					final KafkaMessage msg = new KafkaMessage(count++, part, data);
+					collector.collect(msg);
+					LOG.info("wrote message {}", msg);
 					Thread.sleep(sleep);
 				}
 			}
