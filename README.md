@@ -78,3 +78,14 @@ read
 
 offset checker
 /usr/hdp/current/kafka-broker/bin/kafka-run-class.sh kafka.tools.ConsumerOffsetChecker --zkconnect hdp22-w-0.c.astral-sorter-757.internal:2181,hdp22-w-1.c.astral-sorter-757.internal:2181,hdp22-m.c.astral-sorter-757.internal:2181 --topic test --group flink-kafka-consumer-topology
+
+
+
+######### new tests ##########
+
+/usr/hdp/current/kafka-broker/bin/kafka-topics.sh --create --topic test -partitions 5 --replication-factor 2 --zookeeper hdp22-kafka-w-0.c.astral-sorter-757.internal:2181
+
+
+Write 2 records every 0.5 seconds.
+
+./bin/flink run -j /home/robert/scratch/target/kafka-datagen-1.0-SNAPSHOT.jar  -c com.dataartisans.persistence.KafkaSequenceWriter --bytes 16 --sourcePar 2 --sinkPar 2 --sleep 500 --topicName test --brokers hdp22-kafka-w-1.c.astral-sorter-757.internal:6667,hdp22-kafka-w-0.c.astral-sorter-757.internal:6667,hdp22-kafka-m.c.astral-sorter-757.internal:6667 --elementCount 999999999999
