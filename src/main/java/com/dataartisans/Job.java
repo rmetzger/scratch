@@ -58,18 +58,33 @@ public class Job {
 		for(int i = 0; i < parameters.getInt("numSources"); i++) {
 			data = data.union(env.readTextFile(path));
 		}
-		DataSet<Tuple3<Float,Float, byte[]>> typed = data.map(new MapFunction<String, Tuple3<Float, Float, byte[]>>() {
-			final Random rnd = new Random(1337);
-			@Override
-			public Tuple3<Float, Float, byte[]> map(String s) throws Exception {
-				String[] el = s.split(" ");
-				return new Tuple3<Float, Float, byte[]>(Float.valueOf(el[0]), Float.valueOf(el[1]), new byte[Math.abs(rnd.nextInt(parameters.getInt("maxbytes")))]);
-			}
-		});
+		if(parameters.has("withWorkload")) {
+			DataSet<Tuple3<Float, Float, byte[]>> typed = data.map(new MapFunction<String, Tuple3<Float, Float, byte[]>>() {
+				final Random rnd = new Random(1337);
 
-		DataSet<Tuple3<Float, Float, byte[]>> sums = typed.groupBy(0).sum(1);
+				@Override
+				public Tuple3<Float, Float, byte[]> map(String s) throws Exception {
+					String[] el = s.split(" ");
+					return new Tuple3<Float, Float, byte[]>(Float.valueOf(el[0]), Float.valueOf(el[1]), new byte[Math.abs(rnd.nextInt(parameters.getInt("maxbytes")))]);
+				}
+			});
 
-		sums.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
+			DataSet<Tuple3<Float, Float, byte[]>> sums = typed.groupBy(0).sum(1);
+			sums.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
+		} else {
+			DataSet<Tuple2<Float, Float>> typed = data.map(new MapFunction<String, Tuple2<Float, Float>>() {
+				final Random rnd = new Random(1337);
+
+				@Override
+				public Tuple2<Float, Float> map(String s) throws Exception {
+					String[] el = s.split(" ");
+					return new Tuple2<Float, Float>(Float.valueOf(el[0]), Float.valueOf(el[1]));
+				}
+			});
+
+			DataSet<Tuple2<Float, Float>> sums = typed.groupBy(0).sum(1);
+			sums.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
+		}
 
 		// execute program
 		env.execute("Simple big union");
