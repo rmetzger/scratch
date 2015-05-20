@@ -18,7 +18,14 @@ package com.dataartisans;
  * limitations under the License.
  */
 
+import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.operators.AggregateOperator;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.core.fs.FileSystem;
 
 /**
  * Skeleton for a Flink Job.
@@ -40,32 +47,27 @@ public class Job {
 	public static void main(String[] args) throws Exception {
 		// set up the execution environment
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		ParameterTool parameters = ParameterTool.fromArgs(args);
+		env.getConfig().setGlobalJobParameters(parameters);
 
+		String path = parameters.get("path");
+		DataSet<String> data = env.readTextFile(path);
+		for(int i = 0; i < parameters.getInt("numSources"); i++) {
+			data = data.union(env.readTextFile(path));
+		}
+		DataSet<Tuple2<Float,Float>> typed = data.map(new MapFunction<String, Tuple2<Float, Float>>() {
+			@Override
+			public Tuple2<Float, Float> map(String s) throws Exception {
+				String[] el = s.split(" ");
+				return new Tuple2<Float, Float>(Float.valueOf(el[0]), Float.valueOf(el[1]));
+			}
+		});
 
-		/**
-		 * Here, you can start creating your execution plan for Flink.
-		 *
-		 * Start with getting some data from the environment, like
-		 * 	env.readTextFile(textPath);
-		 *
-		 * then, transform the resulting DataSet<String> using operations
-		 * like
-		 * 	.filter()
-		 * 	.flatMap()
-		 * 	.join()
-		 * 	.coGroup()
-		 * and many more.
-		 * Have a look at the programming guide for the Java API:
-		 *
-		 * http://flink.apache.org/docs/latest/programming_guide.html
-		 *
-		 * and the examples
-		 *
-		 * http://flink.apache.org/docs/latest/examples.html
-		 *
-		 */
+		DataSet<Tuple2<Float, Float>> sums = typed.groupBy(0).sum(1);
+
+		sums.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
 
 		// execute program
-		env.execute("Flink Java API Skeleton");
+		env.execute("Simple big union");
 	}
 }
