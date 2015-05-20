@@ -50,7 +50,7 @@ public class Job {
 	public static void main(String[] args) throws Exception {
 		// set up the execution environment
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		ParameterTool parameters = ParameterTool.fromArgs(args);
+		final ParameterTool parameters = ParameterTool.fromArgs(args);
 		env.getConfig().setGlobalJobParameters(parameters);
 
 		String path = parameters.get("path");
@@ -63,7 +63,7 @@ public class Job {
 			@Override
 			public Tuple3<Float, Float, byte[]> map(String s) throws Exception {
 				String[] el = s.split(" ");
-				return new Tuple3<Float, Float, byte[]>(Float.valueOf(el[0]), Float.valueOf(el[1]), new byte[Math.abs(rnd.nextInt(1024*1024*10))]);
+				return new Tuple3<Float, Float, byte[]>(Float.valueOf(el[0]), Float.valueOf(el[1]), new byte[Math.abs(rnd.nextInt(parameters.getInt("maxbytes")))]);
 			}
 		});
 
