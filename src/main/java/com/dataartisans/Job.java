@@ -24,8 +24,11 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.AggregateOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
+
+import java.util.Random;
 
 /**
  * Skeleton for a Flink Job.
@@ -55,15 +58,16 @@ public class Job {
 		for(int i = 0; i < parameters.getInt("numSources"); i++) {
 			data = data.union(env.readTextFile(path));
 		}
-		DataSet<Tuple2<Float,Float>> typed = data.map(new MapFunction<String, Tuple2<Float, Float>>() {
+		DataSet<Tuple3<Float,Float, byte[]>> typed = data.map(new MapFunction<String, Tuple3<Float, Float, byte[]>>() {
+			final Random rnd = new Random(1337);
 			@Override
-			public Tuple2<Float, Float> map(String s) throws Exception {
+			public Tuple3<Float, Float, byte[]> map(String s) throws Exception {
 				String[] el = s.split(" ");
-				return new Tuple2<Float, Float>(Float.valueOf(el[0]), Float.valueOf(el[1]));
+				return new Tuple3<Float, Float, byte[]>(Float.valueOf(el[0]), Float.valueOf(el[1]), new byte[Math.abs(rnd.nextInt(1024*1024*10))]);
 			}
 		});
 
-		DataSet<Tuple2<Float, Float>> sums = typed.groupBy(0).sum(1);
+		DataSet<Tuple3<Float, Float, byte[]>> sums = typed.groupBy(0).sum(1);
 
 		sums.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
 
