@@ -18,18 +18,21 @@ package de.robertmetzger;
  * limitations under the License.
  */
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.hadoop.mapred.HadoopOutputFormat;
 import org.apache.flink.api.java.operators.DataSource;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.util.Collector;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileOutputFormat;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.hadoop.mapred.TextOutputFormat;
 
 /**
  * Implements the "WordCount" program that computes a simple word occurrence histogram
@@ -44,7 +47,7 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
  * </ul>
  *
  */
-public class WordCount {
+public class MapredWordCount {
 
 	//
 	//	Program
@@ -57,7 +60,7 @@ public class WordCount {
 
 		TextInputFormat tif = new TextInputFormat();
 
-		Job job = Job.getInstance();
+		JobConf job = new JobConf();
 		FileInputFormat.addInputPath(job, new Path(args[0]));
 		// get input data
 		DataSource<Tuple2<LongWritable, Text>> text = env.createHadoopInput(tif, LongWritable.class, Text.class, job);
@@ -70,8 +73,11 @@ public class WordCount {
 				.sum(1);
 
 		// execute and print result
-		counts.print();
+		TextOutputFormat tof = new TextOutputFormat();
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		counts.output(new HadoopOutputFormat<String, Integer>(tof, job));
 
+		env.execute("Hadoop IF OF test");
 	}
 
 	//
