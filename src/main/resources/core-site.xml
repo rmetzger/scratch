@@ -1,0 +1,17 @@
+<configuration>
+
+    <property>
+        <name>fs.s3n.awsAccessKeyId</name>
+        <value>AKIAJTHMYGEN3XZ4ZZPA</value>
+    </property>
+
+    <property>
+        <name>fs.s3n.awsSecretAccessKey</name>
+        <value>0past600H1bRg32FFlMQWyj9S9tBDiyXJLEuRQAl</value>
+    </property>
+    <property>
+        <name>fs.s3n.impl</name>
+        <value>org.apache.hadoop.fs.s3native.NativeS3FileSystem</value>
+    </property>
+
+</configuration>
