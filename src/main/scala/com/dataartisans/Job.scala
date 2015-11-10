@@ -49,8 +49,10 @@ object Job {
           in.split(" ").foreach( a => collector.collect(new WordCount(a, 1) ))
         }
         override def close(): Unit = {
-          // file has been read. lets send the end of stream signal
-          col.collect(new WordCount(EndOfStream, -1))
+          if(col != null) {
+            // file has been read. lets send the end of stream signal
+            col.collect(new WordCount(EndOfStream, -1))
+          }
         }
       }	)
       .keyBy("word")
