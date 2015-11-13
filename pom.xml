@@ -15,13 +15,22 @@
 
         <plugin.maven-compiler.version>3.0</plugin.maven-compiler.version>
 
-        <dep.flink.version>0.10-SNAPSHOT</dep.flink.version>
+        <dep.flink.version>0.10.0</dep.flink.version>
         <dep.jersey.version>1.19</dep.jersey.version>
         <dep.junit.version>4.12</dep.junit.version>
         <dep.neo4j.version>2.3.0</dep.neo4j.version>
     </properties>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>2.10</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -38,8 +47,18 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-java</artifactId>
+            <artifactId>flink-java_2.11</artifactId>
             <version>${dep.flink.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -57,13 +76,17 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-gelly</artifactId>
+            <artifactId>flink-gelly_2.11</artifactId>
             <version>${dep.flink.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.apache.flink</groupId>
-                    <artifactId>flink-clients</artifactId>
+                    <groupId>log4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -75,5 +98,26 @@
             <version>${dep.neo4j.version}</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>9.2.4.v20141103</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-security</artifactId>
+                <version>9.2.4.v20141103</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>9.2.4.v20141103</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

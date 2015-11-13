@@ -21,6 +21,7 @@ package org.apache.flink.api.java.io.neo4j;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.io.DefaultInputSplitAssigner;
 import org.apache.flink.api.common.io.NonParallelInput;
@@ -39,6 +40,7 @@ import org.codehaus.jackson.map.MappingJsonFactory;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.io.StringWriter;
 
 public class Neo4jInputFormat<OUT extends Tuple> extends RichInputFormat<OUT, InputSplit> implements NonParallelInput {
 
@@ -78,7 +80,10 @@ public class Neo4jInputFormat<OUT extends Tuple> extends RichInputFormat<OUT, In
       jsonParser = new MappingJsonFactory().createJsonParser(response.getEntityInputStream());
     } else {
       close();
-      throw new IOException(String.format("Server returned status [%d]", response.getStatus()));
+      StringWriter writer = new StringWriter();
+      IOUtils.copy(response.getEntityInputStream(), writer);
+      String theString = writer.toString();
+      throw new IOException(String.format("Server returned status [%d]. String: "+theString, response.getStatus()));
     }
   }
 
