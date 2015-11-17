@@ -49,6 +49,7 @@ object Job {
 
     env.getConfig.setGlobalJobParameters(pt)
 
+    val sleep = pt.getInt("sleep", 0);
 
     val in = env.readTextFile(pt.getRequired("input"))
 
@@ -57,7 +58,7 @@ object Job {
     /*  val freq = mapped.reduce( (w1, w2) => {
         new Word(w1.w, w1.c + w2.c)
       }) */
-    val freq = mapped.reduce(new RichReduceFunction[Word] {
+    val freq = mapped.groupBy("w").reduce(new RichReduceFunction[Word] {
       var longCounter: Option[LongCounter] = Option.empty
 
       override def open(parameters: Configuration) = {
@@ -65,6 +66,9 @@ object Job {
         longCounter = Option(getRuntimeContext.getLongCounter("reducer-calls-"+instId))
       }
       override def reduce(w1: Word, w2: Word): Word = {
+        if(sleep > 0) {
+          Thread.sleep(sleep)
+        }
         longCounter.get.add(1L)
         new Word(w1.w, w1.c + w2.c)
       }
