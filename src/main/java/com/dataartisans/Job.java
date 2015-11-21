@@ -65,8 +65,12 @@ public class Job {
 				}
 			});
 
-			DataSet<Tuple2<Float, Float>> sums = typed.groupBy(0).sum(1);
-			sums.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
+			if(parameters.has("group")) {
+				DataSet<Tuple2<Float, Float>> sums = typed.groupBy(0).sum(1);
+				sums.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
+			} else {
+				typed.writeAsText(parameters.get("output"), FileSystem.WriteMode.OVERWRITE);
+			}
 		}
 
 		// execute program
