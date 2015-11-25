@@ -30,18 +30,19 @@ under the License.
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<flink>0.10.1</flink>
 	</properties>
 
 	<repositories>
 		<repository>
 			<id>apache.snapshots</id>
 			<name>Apache Development Snapshot Repository</name>
-			<url>https://repository.apache.org/content/repositories/snapshots/</url>
+			<url>https://repository.apache.org/content/repositories/orgapacheflink-1058</url>
 			<releases>
-				<enabled>false</enabled>
+				<enabled>true</enabled>
 			</releases>
 			<snapshots>
-				<enabled>true</enabled>
+				<enabled>false</enabled>
 			</snapshots>
 		</repository>
 	</repositories>
@@ -52,22 +53,22 @@ under the License.
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-java</artifactId>
-			<version>0.9-SNAPSHOT</version>
+			<version>${flink}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-streaming-core</artifactId>
-			<version>0.9-SNAPSHOT</version>
+			<artifactId>flink-streaming-java</artifactId>
+			<version>${flink}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-streaming-connectors</artifactId>
-			<version>0.9-SNAPSHOT</version>
+			<artifactId>flink-connector-kafka</artifactId>
+			<version>${flink}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-clients</artifactId>
-			<version>0.9-SNAPSHOT</version>
+			<version>${flink}</version>
 		</dependency>
 
 		<dependency>
@@ -231,98 +232,6 @@ under the License.
 				</configuration>
 			</plugin>
 		</plugins>
-		
-			
-		<!-- If you want to use Java 8 Lambda Expressions uncomment the following lines -->
-		<!--
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<configuration>
-						<source>1.8</source>
-						<target>1.8</target>
-						<compilerId>jdt</compilerId>
-					</configuration>
-					<dependencies>
-						<dependency>
-							<groupId>org.eclipse.tycho</groupId>
-							<artifactId>tycho-compiler-jdt</artifactId>
-							<version>0.21.0</version>
-						</dependency>
-					</dependencies>
-				</plugin>
-		
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>org.apache.maven.plugins</groupId>
-										<artifactId>maven-assembly-plugin</artifactId>
-										<versionRange>[2.4,)</versionRange>
-										<goals>
-											<goal>single</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore/>
-									</action>
-								</pluginExecution>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>org.apache.maven.plugins</groupId>
-										<artifactId>maven-compiler-plugin</artifactId>
-										<versionRange>[3.1,)</versionRange>
-										<goals>
-											<goal>testCompile</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore/>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
-		-->
-		
+
 	</build>
-	<profiles>
-		<profile>
-			<!-- A profile that does everyting correctly:
-			We set the Flink dependencies to provided -->
-			<id>build-jar</id>
-			<activation>
-				<activeByDefault>false</activeByDefault>
-			</activation>
-			<dependencies>
-				<dependency>
-					<groupId>org.apache.flink</groupId>
-					<artifactId>flink-java</artifactId>
-					<version>0.9-SNAPSHOT</version>
-					<scope>provided</scope>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.flink</groupId>
-					<artifactId>flink-streaming-core</artifactId>
-					<version>0.9-SNAPSHOT</version>
-					<scope>provided</scope>
-				</dependency>
-				<dependency>
-					<groupId>org.apache.flink</groupId>
-					<artifactId>flink-clients</artifactId>
-					<version>0.9-SNAPSHOT</version>
-					<scope>provided</scope>
-				</dependency>
-			</dependencies>
-		</profile>
-	</profiles>
 </project>

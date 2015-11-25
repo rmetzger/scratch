@@ -3,13 +3,16 @@ package com.dataartisans.persistence;
 import kafka.consumer.ConsumerConfig;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedAsynchronously;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.connectors.kafka.Utils;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer082;
 import org.apache.flink.streaming.connectors.kafka.api.persistent.PersistentKafkaSource;
+import org.apache.flink.streaming.util.serialization.TypeInformationSerializationSchema;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,10 +45,9 @@ public class KafkaConsumerTopology {
 		props.setProperty("group.id", "flink-kafka-consumer-topology");
 		props.setProperty("zookeeper.connect", zkConnect);
 		props.setProperty("auto.offset.reset", params.get("offsetReset"));
-		final ConsumerConfig consumerConfig = new ConsumerConfig(props);
-		DataStream<KafkaMessage> inStream = see.addSource(new PersistentKafkaSource<KafkaMessage>(topicName,
-				new Utils.TypeInformationSerializationSchema<KafkaMessage>(new KafkaMessage(), see.getConfig()),
-				consumerConfig)).setParallelism(sourcePar);
+		DataStream<KafkaMessage> inStream = see.addSource(new FlinkKafkaConsumer082<KafkaMessage>(topicName,
+				new TypeInformationSerializationSchema<KafkaMessage>((TypeInformation<KafkaMessage>) TypeExtractor.createTypeInfo(KafkaMessage.class), see.getConfig()),
+				props)).setParallelism(sourcePar);
 
 		// source --> map -->  (discarding) filter (unchained)
 		DataStream<Integer> finalCount = inStream.map(new MapFunction<KafkaMessage, KafkaMessage>() {

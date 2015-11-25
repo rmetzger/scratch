@@ -67,7 +67,7 @@ public class PressureTest {
 			public boolean running = true;
 
 			@Override
-			public void run(Collector<Workload> collector) throws Exception {
+			public void run(SourceContext<Workload> collector) throws Exception {
 				long element = 0;
 				final int partition = getRuntimeContext().getIndexOfThisSubtask();
 				final byte[] data = new byte[dataSize];

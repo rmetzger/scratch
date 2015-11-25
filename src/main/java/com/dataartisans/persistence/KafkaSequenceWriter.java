@@ -1,12 +1,16 @@
 package com.dataartisans.persistence;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
-import org.apache.flink.streaming.connectors.kafka.Utils;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.apache.flink.streaming.connectors.kafka.api.KafkaSink;
 import org.apache.flink.streaming.util.serialization.SerializationSchema;
+import org.apache.flink.streaming.util.serialization.TypeInformationSerializationSchema;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +37,7 @@ public class KafkaSequenceWriter {
 			boolean running = true;
 
 			@Override
-			public void run(Collector<KafkaMessage> collector) throws Exception {
+			public void run(SourceContext<KafkaMessage> collector) throws Exception {
 				long count = 0;
 				int part = getRuntimeContext().getIndexOfThisSubtask();
 				byte[] data = new byte[bytes];
@@ -54,8 +58,8 @@ public class KafkaSequenceWriter {
 			}
 		}).setParallelism(sourcePar);
 
-		SerializationSchema<KafkaMessage, byte[]> serSchema = new Utils.TypeInformationSerializationSchema<KafkaMessage>(new KafkaMessage(), see.getConfig());
-		DataStream<KafkaMessage> sink = data.addSink(new KafkaSink<KafkaMessage>(brokerList, topicName, serSchema)).setParallelism(sinkPar);
+		SerializationSchema<KafkaMessage, byte[]> serSchema = new TypeInformationSerializationSchema<KafkaMessage>((TypeInformation<KafkaMessage>) TypeExtractor.createTypeInfo(KafkaMessage.class), see.getConfig());
+		DataStreamSink<KafkaMessage> sink = data.addSink(new FlinkKafkaProducer<KafkaMessage>(brokerList, topicName, serSchema)).setParallelism(sinkPar);
 
 		see.execute("Kafka sequence writer");
 	}
