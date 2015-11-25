@@ -45,6 +45,7 @@ public class KafkaConsumerPrint {
 		props.setProperty("group.id", "flink-kafka-consumer-topology");
 		props.setProperty("zookeeper.connect", zkConnect);
 		props.setProperty("auto.offset.reset", params.get("offsetReset"));
+		props.putAll(params.getProperties());
 		DeserializationSchema deserSchema = new TypeInformationSerializationSchema<KafkaMessage>((TypeInformation<KafkaMessage>) TypeExtractor.createTypeInfo(KafkaMessage.class),see.getConfig());
 		DataStream<KafkaMessage> inStream = see.addSource(new FlinkKafkaConsumer082<KafkaMessage>(topicName,deserSchema,
 				props)).setParallelism(sourcePar);
