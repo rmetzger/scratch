@@ -19,7 +19,6 @@ package com.dataartisans
  */
 
 import org.apache.flink.api.java.utils.ParameterTool
-import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema
@@ -41,21 +40,20 @@ import org.apache.flink.streaming.util.serialization.SimpleStringSchema
  */
 object Reader {
   def main(args: Array[String]) {
-    def main(args: Array[String]) {
-      val para = ParameterTool.fromArgs(args)
-      // set up the execution environment
-      val env = StreamExecutionEnvironment.getExecutionEnvironment
-      env.getConfig.disableSysoutLogging()
-      env.setNumberOfExecutionRetries(4)
-      env.enableCheckpointing(5000)
-      env.setParallelism(2)
+    val para = ParameterTool.fromArgs(args)
+    // set up the execution environment
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.getConfig.disableSysoutLogging()
+    env.setNumberOfExecutionRetries(4)
+    env.enableCheckpointing(5000)
+    env.setParallelism(2)
 
 
-      val messageStream = env.addSource(new FlinkKafkaConsumer09[String](
-        para.getRequired("topic"), new SimpleStringSchema(), para.getProperties()))
+    val messageStream = env.addSource(new FlinkKafkaConsumer09[String](
+      para.getRequired("topic"), new SimpleStringSchema(), para.getProperties()))
 
-      messageStream.print()
+    messageStream.print()
 
-      env.execute("Read from Kafka example")
+    env.execute("Read from Kafka example")
   }
 }
