@@ -20,7 +20,7 @@ package com.dataartisans
 
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09
+import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer08}
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema
 
 /**
@@ -46,10 +46,9 @@ object Reader {
     env.getConfig.disableSysoutLogging()
     env.setNumberOfExecutionRetries(4)
     env.enableCheckpointing(5000)
-    env.setParallelism(2)
 
 
-    val messageStream = env.addSource(new FlinkKafkaConsumer09[String](
+    val messageStream = env.addSource(new FlinkKafkaConsumer08[String](
       para.getRequired("topic"), new SimpleStringSchema(), para.getProperties()))
 
     messageStream.print()

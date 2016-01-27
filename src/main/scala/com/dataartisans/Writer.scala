@@ -22,7 +22,7 @@ import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer09
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer08
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema
 
 /**
@@ -61,8 +61,11 @@ object Writer {
         }
       }
     })
+    env.setParallelism(1)
 
-    stream.addSink(new FlinkKafkaProducer09[String](para.getRequired("topic"), new SimpleStringSchema, para.getProperties))
+    stream.addSink(new FlinkKafkaProducer08[String](para.getRequired("topic"), new SimpleStringSchema, para.getProperties))
+
+    stream.addSink(new FlinkKafkaProducer08[String](para.getRequired("topic"), new SimpleStringSchema, para.getProperties))
 
 
     // execute program
