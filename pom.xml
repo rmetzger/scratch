@@ -52,6 +52,13 @@ under the License.
 			<version>5.1.0-mapr</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-clients</artifactId>
+			<version>0.9.0.0-mapr-1602</version>
+		</dependency>
+
+
 		<!-- Add Flink Kafka connector for Kafka 0.9 -->
 		<dependency>
 			<groupId>org.apache.flink</groupId>

@@ -27,6 +27,8 @@ import org.apache.flink.streaming.util.serialization.SimpleStringSchema;
 
 /**
  * Demo for reading from a MapR stream
+ *
+ * Arguments for MapR virtual machine: --topic /user/mapr/test:abc --bootstrap.servers localhost:7222
  */
 public class MapRStreamsDemo {
 
