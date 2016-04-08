@@ -22,6 +22,7 @@ import com.datastax.driver.core.Cluster;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
 import org.apache.flink.streaming.api.checkpoint.Checkpointed;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -39,6 +40,13 @@ import java.util.Random;
  * CREATE KEYSPACE demo;
  * USE demo;
  * CREATE TABLE events (  time bigint,  userId bigint,  PRIMARY KEY (time));
+ *
+ *
+ * New cassandra:
+ * CREATE KEYSPACE demo WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
+ *
+ * on a cluster:
+ * ./bin/flink run /home/robert/scratch/target/cassandra-test-1.0-1.0-SNAPSHOT.jar --numKeys 1000 --timeSliceSize 60000 --query "INSERT INTO demo.events (time, userid) VALUES(?,?);" --host cdh544-worker-1.c.astral-sorter-757.internal --keyspace demo --committer-table demo.commits
  */
 public class Job {
 	private static final Logger LOG = LoggerFactory.getLogger(Job.class);
@@ -46,10 +54,13 @@ public class Job {
 	public static void main(String[] args) throws Exception {
 		// set up the execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
+		env.enableCheckpointing(1000);
 		final ParameterTool pt = ParameterTool.fromArgs(args);
+		env.setStateBackend(new RocksDBStateBackend(pt.get("rock","file:///home/robert/flink-workdir/cassandra-test-1.0/rocksdb")));
+
+
 		DataStream<Tuple2<Long, Long>> events = env.addSource(new EventGenerator(pt));
-		events.flatMap(new ThroughputLogger<Tuple2<Long, Long>>(32, 100_000L));
+		events.flatMap(new ThroughputLogger<Tuple2<Long, Long>>(32, 100_000L)).setParallelism(1);
 
 		// String host, String insertQuery, CheckpointCommitter committer, TypeSerializer<IN> serializer
 	/*	CassandraSink.add(events, pt.getRequired("host"), pt.getRequired("query"),
@@ -57,15 +68,16 @@ public class Job {
 
 		CassandraSink.addSink(events)
 			.setQuery(pt.getRequired("query"))
-				.setClusterBuilder(new ClusterBuilder() {
-					@Override
-					protected Cluster buildCluster(Cluster.Builder builder) {
-						return builder.addContactPoint(pt.getRequired("host")).build();
-					}
-				})
-			.setCheckpointCommitter(new CassandraCommitter(pt.getRequired("host"), pt.getRequired("keyspace"), pt.getRequired("committer-table")))
-			.setIdempotent(true)
-			.setConsistencyLevel(CassandraSink.ConsistencyLevel.EXACTLY_ONCE)
+				//.setClusterBuilder(new ClusterBuilder() {
+				//	@Override
+				//	protected Cluster buildCluster(Cluster.Builder builder) {
+				//		return builder.addContactPoint(pt.getRequired("host")).build();
+				//	}
+				//})
+		//	.setCheckpointCommitter(new CassandraCommitter(pt.getRequired("host"), pt.getRequired("keyspace"), pt.getRequired("committer-table")))
+		//	.setIdempotent(true)
+			.setHost(pt.getRequired("host"))
+		//	.enableWriteAheadLog()
 			.build();
 
 
@@ -74,9 +86,13 @@ public class Job {
 		env.execute("Cassandra Pumper: " +pt.toMap());
 	}
 
-	public static class EventGenerator extends RichParallelSourceFunction<Tuple2<Long, Long>> implements Checkpointed<Long> {
+	public static class EventGenerator extends RichParallelSourceFunction<Tuple2<Long, Long>> implements Checkpointed<Tuple2<Long,Long>> {
 		private final ParameterTool pt;
+
+		//checkpointed
 		private Long time = 0L;
+		private Long key = 0L;
+
 		private volatile boolean running = true;
 		private final long numKeys;
 		private final long eventsPerKey;
@@ -100,24 +116,31 @@ public class Job {
 		@Override
 		public void run(SourceContext<Tuple2<Long, Long>> sourceContext) throws Exception {
 			rnd = new XORShiftRandom(getRuntimeContext().getIndexOfThisSubtask());
-
-			while(running) {
-				synchronized (sourceContext.getCheckpointLock()) {
-					for (long key = 0; key < numKeys; key++) {
+			long el = 0;
+			while(el < 10_000_000L) {
+				while(true) {
+					//for (key = 0L; key < numKeys; key++) {
+					synchronized (sourceContext.getCheckpointLock()) {
 						for (long eventPerKey = 0; eventPerKey < eventsPerKey; eventPerKey++) {
 							final Tuple2<Long, Long> out = new Tuple2<>();
 							out.f0 = time + rnd.nextInt((int) timeSliceSize); // distribute events within slice size
 							out.f1 = key;
-							sourceContext.collect(out);
+							//			 System.out.println("Outputting key " + key + " for time " + time);
+							sourceContext.collect(out); el++;
 							if (!running) {
 								return; // we are done
 							}
 						}
 					}
-					// advance base time
-					time += timeSliceSize;
+					if(++key >= numKeys) {
+						key = 0L;
+						break;
+					}
 				}
+				// advance base time
+				time += timeSliceSize;
 			}
+			Thread.sleep(1_000_000);
 			sourceContext.close();
 		}
 
@@ -128,13 +151,14 @@ public class Job {
 		}
 
 		@Override
-		public Long snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
-			return this.time;
+		public Tuple2<Long, Long> snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
+			return new Tuple2<>(this.time, this.key);
 		}
 
 		@Override
-		public void restoreState(Long state) throws Exception {
-			this.time = state;
+		public void restoreState(Tuple2<Long, Long> state) throws Exception {
+			this.time = state.f0;
+			this.key = state.f1;
 		}
 	}
 
