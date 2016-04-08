@@ -77,7 +77,7 @@ public class Job {
 		//	.setCheckpointCommitter(new CassandraCommitter(pt.getRequired("host"), pt.getRequired("keyspace"), pt.getRequired("committer-table")))
 		//	.setIdempotent(true)
 			.setHost(pt.getRequired("host"))
-		//	.enableWriteAheadLog()
+			.enableWriteAheadLog()
 			.build();
 
 
