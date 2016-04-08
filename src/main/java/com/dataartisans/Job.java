@@ -23,6 +23,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
+import org.apache.flink.runtime.state.filesystem.FsStateBackend;
 import org.apache.flink.streaming.api.checkpoint.Checkpointed;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -56,7 +57,13 @@ public class Job {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.enableCheckpointing(1000);
 		final ParameterTool pt = ParameterTool.fromArgs(args);
-		env.setStateBackend(new RocksDBStateBackend(pt.get("rock","file:///home/robert/flink-workdir/cassandra-test-1.0/rocksdb")));
+
+		if(pt.has("rock")) {
+			env.setStateBackend(new RocksDBStateBackend(pt.get("rock", "file:///home/robert/flink-workdir/cassandra-test-1.0/rocksdb")));
+		}
+		if(pt.has("fs")) {
+			env.setStateBackend(new FsStateBackend(pt.getRequired("fs")));
+		}
 
 
 		DataStream<Tuple2<Long, Long>> events = env.addSource(new EventGenerator(pt));
