@@ -109,8 +109,6 @@ public class Job {
 
 		public EventGenerator(ParameterTool pt) {
 
-			int subtask = getRuntimeContext().getIndexOfThisSubtask();
-
 			this.pt = pt;
 			this.numKeys = pt.getLong("numKeys");
 			this.eventsPerKey = pt.getLong("eventsPerKeyPerGenerator", 1);
