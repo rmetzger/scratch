@@ -108,6 +108,9 @@ public class Job {
 		private Random rnd;
 
 		public EventGenerator(ParameterTool pt) {
+
+			int subtask = getRuntimeContext().getIndexOfThisSubtask();
+
 			this.pt = pt;
 			this.numKeys = pt.getLong("numKeys");
 			this.eventsPerKey = pt.getLong("eventsPerKeyPerGenerator", 1);
@@ -123,8 +126,8 @@ public class Job {
 		@Override
 		public void run(SourceContext<Tuple2<Long, Long>> sourceContext) throws Exception {
 			rnd = new XORShiftRandom(getRuntimeContext().getIndexOfThisSubtask());
-			long el = 0;
-			while(el < 10_000_000L) {
+			// long el = 0;
+			while(running) {
 				while(true) {
 					//for (key = 0L; key < numKeys; key++) {
 					synchronized (sourceContext.getCheckpointLock()) {
@@ -133,7 +136,7 @@ public class Job {
 							out.f0 = time + rnd.nextInt((int) timeSliceSize); // distribute events within slice size
 							out.f1 = key;
 							//			 System.out.println("Outputting key " + key + " for time " + time);
-							sourceContext.collect(out); el++;
+							sourceContext.collect(out);  // el++;
 							if (!running) {
 								return; // we are done
 							}
@@ -147,7 +150,7 @@ public class Job {
 				// advance base time
 				time += timeSliceSize;
 			}
-			Thread.sleep(1_000_000);
+			// Thread.sleep(1_000_000);
 			sourceContext.close();
 		}
 
