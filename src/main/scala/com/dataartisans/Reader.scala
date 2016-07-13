@@ -18,26 +18,13 @@ package com.dataartisans
  * limitations under the License.
  */
 
+import java.util.Collections
+
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer08}
-import org.apache.flink.streaming.util.serialization.SimpleStringSchema
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaGroupConsumer
+import org.apache.flink.streaming.util.serialization.{KeyedDeserializationSchemaWrapper, SimpleStringSchema}
 
-/**
- * Skeleton for a Flink Job.
- *
- * For a full example of a Flink Job, see the WordCountJob.scala file in the
- * same package/directory or have a look at the website.
- *
- * You can also generate a .jar file that you can submit on your Flink
- * cluster. Just type
- * {{{
- *   mvn clean package
- * }}}
- * in the projects root directory. You will find the jar in
- * target/flink-quickstart-0.1-SNAPSHOT-Sample.jar
- *
- */
 object Reader {
   def main(args: Array[String]) {
     val para = ParameterTool.fromArgs(args)
@@ -45,11 +32,11 @@ object Reader {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.getConfig.disableSysoutLogging()
     env.setNumberOfExecutionRetries(4)
-    env.enableCheckpointing(5000)
+    env.enableCheckpointing(15000)
 
 
-    val messageStream = env.addSource(new FlinkKafkaConsumer08[String](
-      para.getRequired("topic"), new SimpleStringSchema(), para.getProperties()))
+    val messageStream = env.addSource(new FlinkKafkaGroupConsumer[String](
+      Collections.singletonList(para.getRequired("topic")), new KeyedDeserializationSchemaWrapper(new SimpleStringSchema()), para.getProperties))
 
     messageStream.print()
 
