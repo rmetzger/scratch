@@ -9,13 +9,13 @@ import java.util.List;
  * Created by robert on 11/26/16.
  */
 public class EventSessionWindow extends Window {
-    List<Event> events;
+   // List<Event> events;
 
     public EventSessionWindow() {
 
     }
 
-    public EventSessionWindow(EventSessionWindow from) {
+   /* public EventSessionWindow(EventSessionWindow from) {
         this.events = new ArrayList<>(from.events);
     }
 
@@ -26,7 +26,7 @@ public class EventSessionWindow extends Window {
 
     public EventSessionWindow(List<Event> events) {
         this.events = events;
-    }
+    } */
 
     @Override
     public long maxTimestamp() {
@@ -36,7 +36,7 @@ public class EventSessionWindow extends Window {
     @Override
     public String toString() {
         return "EventSessionWindow{" +
-                "events=" + events +
+              //  "events=" + events +
                 '}';
     }
 }

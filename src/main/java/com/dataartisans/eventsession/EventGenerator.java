@@ -46,7 +46,10 @@ public class EventGenerator extends RichParallelSourceFunction<Event> {
         while (running) {
             Event e = new Event();
             e.id = i;
-            if (activeUsers.size() < maxActiveUserCount) {
+            if(activeUsers.size() > 0 && RND.nextDouble() < 0.2) {
+                e.type = EventSessionWindowJob.EventType.UNRELATED_ACTION;
+                e.user = activeUsers.getRandom().f0;
+            } else if (activeUsers.size() < maxActiveUserCount) {
                 // we need to create a new user
                 long nextUserId = getNextUserId();
                 activeUsers.add(nextUserId, 0);
@@ -70,7 +73,7 @@ public class EventGenerator extends RichParallelSourceFunction<Event> {
             e.url = RandomStringUtils.random(10, 0, 0, true, true, null, RND);
             ctx.collectWithTimestamp(e, i);
             i++;
-            Thread.sleep(100);
+         //   Thread.sleep(100);
         }
     }
 

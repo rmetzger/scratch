@@ -22,8 +22,8 @@ public class EventSessionWindowJob {
     public enum EventType {
         LOGIN,
         LOGOUT,
-        AUTH_ACTION /* Only possible when LOGIN has been done and LOGOUT hasn't been done */,
-        ANON_ACTION
+        AUTH_ACTION, /* Only possible when LOGIN has been done and LOGOUT hasn't been done */
+        UNRELATED_ACTION
     }
 
 
