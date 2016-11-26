@@ -32,4 +32,15 @@ public class EventSessionWindowTrigger extends Trigger<Event, EventSessionWindow
     public void clear(EventSessionWindow window, TriggerContext ctx) throws Exception {
 
     }
+
+    @Override
+    public boolean canMerge() {
+        return true;
+    }
+
+    @Override
+    public TriggerResult onMerge(EventSessionWindow window, OnMergeContext ctx) throws Exception {
+        System.out.println("on merge trigger " + window);
+        return TriggerResult.CONTINUE;
+    }
 }

@@ -9,11 +9,13 @@ import org.apache.flink.streaming.api.windowing.assigners.MergingWindowAssigner;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
- * Created by robert on 11/26/16.
+ * asdf
  */
 public class EventSessionWindowAssigner extends MergingWindowAssigner<Event, EventSessionWindow> {
 
@@ -39,7 +41,15 @@ public class EventSessionWindowAssigner extends MergingWindowAssigner<Event, Eve
 
     @Override
     public void mergeWindows(Collection<EventSessionWindow> windows, MergeCallback<EventSessionWindow> callback) {
-        // System.out.println("+++ merge " + windows);
+        if(windows.size() > 1) {
+            // perform merge
+            List<Event> events = new ArrayList<>();
+            for(EventSessionWindow window: windows) {
+                events.addAll(window.events);
+            }
+            EventSessionWindow mergedWindow = new EventSessionWindow();
+            callback.merge(windows, mergedWindow);
+        }
     }
 
     private class EventSessionWindowSerializer extends TypeSerializer<EventSessionWindow> {
@@ -65,13 +75,13 @@ public class EventSessionWindowAssigner extends MergingWindowAssigner<Event, Eve
 
         @Override
         public EventSessionWindow copy(EventSessionWindow from, EventSessionWindow reuse) {
-            // TODO
+            reuse.events = from.events;
             return reuse;
         }
 
         @Override
         public int getLength() {
-            return 0;
+            return -1;
         }
 
         @Override

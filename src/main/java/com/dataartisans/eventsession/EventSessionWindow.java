@@ -24,8 +24,19 @@ public class EventSessionWindow extends Window {
         events.add(initialElement);
     }
 
+    public EventSessionWindow(List<Event> events) {
+        this.events = events;
+    }
+
     @Override
     public long maxTimestamp() {
         return Long.MAX_VALUE;
+    }
+
+    @Override
+    public String toString() {
+        return "EventSessionWindow{" +
+                "events=" + events +
+                '}';
     }
 }

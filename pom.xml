@@ -292,7 +292,7 @@ under the License.
 
 									<!-- Also exclude very big transitive dependencies of Flink
 
-									WARNING: You have to remove these excludes if your code relies on other
+									WARNING: You have to replace these excludes if your code relies on other
 									versions of these dependencies.
 
 									-->
