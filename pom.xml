@@ -79,6 +79,18 @@ under the License.
 			<version>${flink.version}</version>
 		</dependency>
 
+		<!-- Dependency for getting QDigest -->
+		<dependency>
+			<groupId>com.clearspring.analytics</groupId>
+			<artifactId>stream</artifactId>
+			<version>2.7.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.tdunning</groupId>
+			<artifactId>t-digest</artifactId>
+			<version>3.1</version>
+		</dependency>
 
 		<!--<dependency>
 			<groupId>org.apache.bahir</groupId>

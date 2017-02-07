@@ -2,6 +2,7 @@ package com.dataartisans.eventsession;
 
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.XORShiftRandom;
 
@@ -12,7 +13,7 @@ import java.util.Random;
  */
 public class StreamShuffler<T> extends RichFlatMapFunction<T, T> {
     private final int windowSize;
-    private final Random RND = new XORShiftRandom();
+    protected final Random RND = new XORShiftRandom();
     private transient T[] buffer;
     private transient int fillIndex;
 
@@ -33,9 +34,13 @@ public class StreamShuffler<T> extends RichFlatMapFunction<T, T> {
             buffer[fillIndex++] = value;
         } else {
             // buffer full. Randomly select element for emission.
-            int replaceIndex = RND.nextInt(buffer.length);
+            int replaceIndex = getNext(buffer.length);
             out.collect(buffer[replaceIndex]);
             buffer[replaceIndex] = value;
         }
+    }
+
+    public int getNext(int bound) {
+        return RND.nextInt(bound);
     }
 }
