@@ -2,8 +2,8 @@
 <body>
 	<table>
 		<tr>
-			<td>a</td>
-			<td>a</td>
+			<td>Geschwindigkeit <p id="speed">15</p></td>
+			<td>Uhrzeit <p id="time">15</p></td>
 		</tr>
 		<tr>
 			<td>a</td>
@@ -15,9 +15,13 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script>
 	function poll_data() {
-
+		$.get("http://localhost:8000/sample.json", function(data, status){
+			console.log("got data", data);
+		    $("#speed").text(data.speed);
+		    $("#time").text(data.time);
+		});
 	}
-	setInterval(poll_data(), 1000); // call poll_data() once per second
+	setInterval(poll_data, 1000); // call poll_data() once per second
 </script>
 
 </html>
