@@ -78,12 +78,14 @@ public class HangingOnSubmission {
 				}
 				throw new RuntimeException("Oh my god, I failed");
 			}
-			int mins = params.getInt("hangMins", 5);
-			LOG.info("where am I, Hanging for " + mins, new RuntimeException("Here"));
-			try {
-				Thread.sleep(1000 * 60 * mins);
-			} catch (InterruptedException e) {
-				Thread.interrupted();
+			if(params.has("hangMins")) {
+				int mins = params.getInt("hangMins", 1);
+				LOG.info("where am I, Hanging for " + mins, new RuntimeException("Here"));
+				try {
+					Thread.sleep(1000 * 60 * mins);
+				} catch (InterruptedException e) {
+					Thread.interrupted();
+				}
 			}
 			return new MyInputSplits[]{new MyInputSplits()};
 		}
@@ -115,6 +117,9 @@ public class HangingOnSubmission {
 
 		@Override
 		public String nextRecord(String reuse) throws IOException {
+			if (params.has("failAtRuntime")) {
+				throw new RuntimeException("Now I failed at runtime");
+			}
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
