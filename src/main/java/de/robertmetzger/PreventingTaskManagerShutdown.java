@@ -62,6 +62,25 @@ public class PreventingTaskManagerShutdown {
 
 		@Override
 		public String map(String value) throws Exception {
+			Thread hook = new Thread(() -> {
+				LOG.info("Hook running");
+				Object l = new Object();
+				synchronized (l) {
+					try {
+						LOG.info("Hook waiting");
+						l.wait();
+						LOG.info("notified");
+					} catch (InterruptedException e) {
+						LOG.info("interrupted");
+						throw new RuntimeException("nooo!", e);
+					}
+				}
+			});
+			LOG.info("Registered hook");
+			Runtime.getRuntime().addShutdownHook(hook);
+			Thread.sleep(50000);
+			return value;
+			/*
 			lock = new Object();
 			Thread t = new Thread(() -> {
 				LOG.info("nondaemon running");
@@ -78,6 +97,7 @@ public class PreventingTaskManagerShutdown {
 			t.start();
 			Thread hook = new Thread(() -> {
 				LOG.info("Shutdownhook running");
+				System.exit(0);
 				// trigger JVM hang
 				synchronized (lock) {
 					LOG.info("sync");
@@ -100,7 +120,7 @@ public class PreventingTaskManagerShutdown {
 						}
 					}
 				} */
-			});
+			/*});
 			hook.setDaemon(false);
 			Runtime.getRuntime().addShutdownHook(hook);
 			LOG.info("Shutdownhook added");
@@ -111,7 +131,7 @@ public class PreventingTaskManagerShutdown {
 				} catch (Throwable tr) {
 					LOG.debug("Ignoring", tr);
 				}
-			}
+			} */
 			// return value;
 		}
 	}

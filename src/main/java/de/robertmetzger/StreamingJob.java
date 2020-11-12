@@ -24,6 +24,8 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.execution.JobClient;
+import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
@@ -36,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import de.robertmetzger.flink.utils.datagenerators.SimpleStringSource;
 import de.robertmetzger.flink.utils.performance.ThroughputLogger;
 
+import java.io.File;
+import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -57,6 +61,15 @@ public class StreamingJob {
 	private static final Logger LOG = LoggerFactory.getLogger(StreamingJob.class);
 
 	public static void main(String[] args) throws Exception {
+		FileSystem fs = FileSystem.get(new URI("file:///tmp/test"));
+		System.out.println("res = " + fs.delete(new Path("file:///tmp/test"), false));
+		System.exit(0);
+
+		File parent = new File("/tmp");
+		File f = new File(parent, "../etc/passwd");
+		System.out.println("f = " + f.exists() +" f path " + f.getAbsolutePath());
+
+		System.exit(0);
 		LOG.info("Welcome");
 		// set up the streaming execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
