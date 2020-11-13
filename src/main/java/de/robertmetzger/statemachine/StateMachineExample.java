@@ -22,6 +22,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.kafka.source.KafkaSource;
@@ -122,7 +123,7 @@ public class StateMachineExample {
 		env.getConfig().setGlobalJobParameters(params);
 
 		DataStream<Event> events = env.fromSource(source, WatermarkStrategy.noWatermarks(),
-			"Kafka Source");
+			"Kafka Source").returns(TypeInformation.of(Event.class));
 
 		DataStream<Alert> alerts = events
 				// partition on the address to make sure equal addresses
