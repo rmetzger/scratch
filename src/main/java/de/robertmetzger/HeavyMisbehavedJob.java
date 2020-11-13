@@ -32,6 +32,7 @@ import org.apache.flink.util.XORShiftRandom;
 import com.google.common.collect.Lists;
 
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+import de.robertmetzger.flink.utils.performance.ElementsPerSecond;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -342,7 +343,7 @@ public class HeavyMisbehavedJob {
         @Override
         public void run(SourceContext<ControlEvent> ctx) throws Exception {
             if(getRuntimeContext().getIndexOfThisSubtask() == 0) {
-                ElementsPerSecond perSecond = new ElementsPerSecond(EPS);
+                de.robertmetzger.flink.utils.performance.ElementsPerSecond perSecond = new de.robertmetzger.flink.utils.performance.ElementsPerSecond(EPS);
                 while (running) {
                     ControlEvent ctr = new ControlEvent();
                     if(filters.size() < targetNumFilters) {
@@ -366,7 +367,7 @@ public class HeavyMisbehavedJob {
                 }
             } else {
                 // we only send some bullshit events here
-                ElementsPerSecond perSecond = new ElementsPerSecond(EPS);
+                de.robertmetzger.flink.utils.performance.ElementsPerSecond perSecond = new de.robertmetzger.flink.utils.performance.ElementsPerSecond(EPS);
                 byte[] voidWL = new byte[voidFilterSize];
                 byte[] largeWL = new byte[largeWorkloadSize];
                 while (running) {
@@ -443,7 +444,7 @@ public class HeavyMisbehavedJob {
 
         @Override
         public void run(SourceContext<SaleEvent> ctx) throws Exception {
-            ElementsPerSecond perSecond = new ElementsPerSecond(EPS);
+            de.robertmetzger.flink.utils.performance.ElementsPerSecond perSecond = new de.robertmetzger.flink.utils.performance.ElementsPerSecond(EPS);
             byte[] wl = new byte[workloadSize];
             while(running) {
                 SaleEvent se = new SaleEvent();
@@ -479,7 +480,6 @@ public class HeavyMisbehavedJob {
                 ProductImpressions pi = new ProductImpressions();
                 pi.productId = (long)(RND.nextDouble()*targetNumProducts);
                 ctx.collect(pi);
-                Thread.yield();
             }
         }
 
@@ -562,7 +562,7 @@ public class HeavyMisbehavedJob {
         public void flatMap1(Tuple2<ControlEvent, SaleEvent> value, Collector<FilterMatch> out) throws Exception {
             if(RND.nextDouble() < killLikelihood) {
                 LOG.warn("Killing this TaskManager", new RuntimeException("Exception", new RuntimeException("with a cause")));
-                System.exit(0);
+                Runtime.getRuntime().halt(0);
             }
 
             if(value.f0 == null) {
@@ -583,12 +583,12 @@ public class HeavyMisbehavedJob {
         }
 
         private void evaluateFilters(ProductDescriptor product, Collector<FilterMatch> out) throws InterruptedException {
-            /*for(Filter filter: currentFilters) {
+            for(Filter filter: currentFilters) {
                 if(filter.match(product)) {
                     // first, this is a good opportunity to block for a while (for backpressure)
-                  //  Thread.sleep(RND.nextInt(maxBlockingTime));
+                    Thread.sleep(RND.nextInt(maxBlockingTime));
                 }
-            } */
+            }
             FilterMatch fm = new FilterMatch();
             fm.id = (long)(RND.nextDouble()*targetNumKeys);
             out.collect(fm);
@@ -677,7 +677,7 @@ public class HeavyMisbehavedJob {
 
         @Override
         public void run(SourceContext<WarehouseUpdates> ctx) throws Exception {
-            ElementsPerSecond perSecond = new ElementsPerSecond(elementsPerSecond);
+            HeavyMisbehavedJob.ElementsPerSecond perSecond = new HeavyMisbehavedJob.ElementsPerSecond(elementsPerSecond);
             byte[] wl = new byte[48];
             while(running) {
                 ctx.collect(new WarehouseUpdates(wl));
