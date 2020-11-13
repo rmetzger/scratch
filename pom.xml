@@ -52,24 +52,22 @@ under the License.
 	</repositories>
 
 	<dependencies>
-		<!-- <dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-table-api-java-bridge_2.11</artifactId>
-			<version>${flink.version}</version>
-			<scope>provided</scope>
-		</dependency> -->
-
-		<!--	<dependency>
-                <groupId>org.apache.flink</groupId>
-                <artifactId>flink-table-planner-blink_2.11</artifactId>
-                <version>${flink.version}</version>
-                <scope>provided</scope>
-            </dependency>-->
-
 		<dependency>
 			<groupId>de.robertmetzger</groupId>
 			<artifactId>flink-utils-basics</artifactId>
 			<version>0.1-SNAPSHOT</version>
+			<!-- <exclusions>
+				<exclusion>
+					<groupId>org.apache.flink</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions> -->
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-kafka_2.11</artifactId>
+			<version>${flink.version}</version>
 		</dependency>
 
 		<dependency>
