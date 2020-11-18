@@ -84,12 +84,6 @@ public class StateMachineExample {
 		System.out.printf("Reading from kafka topic %s @ %s\n", kafkaTopic, brokers);
 		System.out.println();
 
-		Properties kafkaProps = new Properties();
-		kafkaProps.setProperty("bootstrap.servers", brokers);
-
-		FlinkKafkaConsumer<Event> kafka = new FlinkKafkaConsumer<>(kafkaTopic, new EventDeSerializer(), kafkaProps);
-		kafka.setStartFromLatest();
-		kafka.setCommitOffsetsOnCheckpoints(false);
 
 		KafkaSource<Event> source = KafkaSource
 			 .<Event>builder()
