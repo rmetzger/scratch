@@ -31,6 +31,7 @@ import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
@@ -97,6 +98,7 @@ public class PageRank {
 		int numPages = -1;
 		if(params.has("count-job")) {
 			numPages = (int) pagesInput.count();
+			System.out.println("Determined count as " + numPages);
 		}
 		if (params.has("count")) {
 			numPages = params.getInt("count");
@@ -133,7 +135,7 @@ public class PageRank {
 
 		// emit result
 		if (params.has("output")) {
-			finalPageRanks.writeAsCsv(params.get("output"), "\n", " ");
+			finalPageRanks.writeAsCsv(params.get("output"), "\n", " ", FileSystem.WriteMode.OVERWRITE);
 			// execute program
 			env.execute("Basic Page Rank Example");
 		} else {
