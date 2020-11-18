@@ -42,7 +42,7 @@ public class PageRankDataGen {
         StringBuilder sb = new StringBuilder();
 
         sb.append(from);
-        sb.append("\t");
+        sb.append(' ');
         sb.append(to);
         sb.append("\n");
 
