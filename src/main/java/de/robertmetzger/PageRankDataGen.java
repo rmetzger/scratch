@@ -12,6 +12,10 @@ public class PageRankDataGen {
 
     public static void main(String[] args) throws IOException {
         ParameterTool pt = ParameterTool.fromArgs(args);
+
+        long bushyLimit = pt.getLong("bushy-limit", 500_000);
+        int bushyDensity = pt.getInt("busy-factor", 20000);
+
         long pages = pt.getLong("pages");
         Random RNG = new XORShiftRandom();
         try (BufferedWriter edgeOut = new BufferedWriter(new FileWriter("edges.txt"))) {
@@ -26,8 +30,8 @@ public class PageRankDataGen {
                     if (page < 50_000L) {
                         writeEdge(page, page + 1, edgeOut);
                     }
-                    if (page < 500) {
-                        density = Math.min((int)pages, 2000);
+                    if (page < bushyLimit) {
+                        density = Math.min((int)pages, bushyDensity);
                     }
                     for (int i = 0; i < density; i++) {
                         long nextPage = Math.abs(RNG.nextLong()) % pages;
