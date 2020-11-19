@@ -72,7 +72,6 @@ import static org.apache.flink.api.java.aggregation.Aggregations.SUM;
 public class PageRank {
 
 	private static final double DAMPENING_FACTOR = 0.85;
-	private static final double EPSILON = 0.0001;
 
 	// *************************************************************************
 	//     PROGRAM
@@ -106,6 +105,10 @@ public class PageRank {
 		if (params.has("recovery")) {
 			env.setRestartStrategy(RestartStrategies.fixedDelayRestart(params.getInt("recovery"),0L ));
 		}
+		double epsilon = 0.0001;
+		if (params.has("epsilon")) {
+			epsilon = params.getDouble("epsilon");
+		}
 		env.getConfig().setExecutionMode(ExecutionMode.valueOf(params.get("executionMode")));
 
 		// assign initial rank to pages
@@ -131,7 +134,7 @@ public class PageRank {
 				newRanks,
 				newRanks.join(iteration).where(0).equalTo(0)
 				// termination condition
-				.filter(new EpsilonFilter()));
+				.filter(new EpsilonFilter(epsilon)));
 
 		// emit result
 		if (params.has("output")) {
@@ -230,9 +233,15 @@ public class PageRank {
 	 */
 	public static final class EpsilonFilter implements FilterFunction<Tuple2<Tuple2<Long, Double>, Tuple2<Long, Double>>> {
 
+		private final double epsilon;
+
+		public EpsilonFilter(double epsilon) {
+			this.epsilon = epsilon;
+		}
+
 		@Override
 		public boolean filter(Tuple2<Tuple2<Long, Double>, Tuple2<Long, Double>> value) {
-			return Math.abs(value.f0.f1 - value.f1.f1) > EPSILON;
+			return Math.abs(value.f0.f1 - value.f1.f1) > epsilon;
 		}
 	}
 

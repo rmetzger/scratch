@@ -71,6 +71,9 @@ import scala.concurrent.duration.FiniteDuration;
  * H) Big state (bigger than memory)
  * I) Types that need a kryo and kryo with a custom serializer.
  *
+ * Ideas for improvements:
+ * - add timers
+ * - add state ttl
  *
  * The application is a dynamic filter (coMap) that filters for events from product sales
  * and impressions on those product.
