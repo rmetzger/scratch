@@ -35,12 +35,14 @@ import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsIni
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.SavepointFormatType;
 import org.apache.flink.runtime.jobgraph.SavepointConfigOptions;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +51,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DataStreamJob {
+public class SinkFunctionExampleJob {
 
-	private static final Logger logger = LoggerFactory.getLogger(DataStreamJob.class);
+	private static final Logger logger = LoggerFactory.getLogger(SinkFunctionExampleJob.class);
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool pt = ParameterTool.fromArgs(args);
