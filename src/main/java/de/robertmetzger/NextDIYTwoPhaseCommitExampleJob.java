@@ -24,13 +24,18 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.List;
 
+
+/**
+ * ./bin/flink run -c de.robertmetzger.NextDIYTwoPhaseCommitExampleJob  /Users/rmetzger/Projects/stateful-source-example/target/stateful-source-example-1.0-SNAPSHOT.jar
+ */
 public class NextDIYTwoPhaseCommitExampleJob {
 
     private static final Logger logger = LoggerFactory.getLogger(SinkFunctionExampleJob.class);
 
     public static void main(String[] args) throws Exception {
         ParameterTool pt = ParameterTool.fromArgs(args);
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
+        //StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(10_000L);
         env.setStateBackend(new EmbeddedRocksDBStateBackend(true));
         env.getCheckpointConfig().setCheckpointStorage(new FileSystemCheckpointStorage("file:///tmp/checkpoint-storage"));
@@ -46,10 +51,11 @@ public class NextDIYTwoPhaseCommitExampleJob {
     private enum Target {
         BLUE, GREEN;
     }
+
     /**
      * I first tried implementing a sink that commits on "notifyCheckpointComplete", but the problem is that we have no guarantee
      * that this method get's called. I didn't see a solution to this problem
-     *
+     * <p>
      * Next approach: commit the previous checkpoint's data in the snapshot method.
      */
     private static class TwoPhaseCommitSink extends RichSinkFunction<String> implements CheckpointedFunction /*, CheckpointListener */ {
@@ -84,6 +90,7 @@ public class NextDIYTwoPhaseCommitExampleJob {
                 fromCheckpoint = context.getCheckpointId();
                 green.clear();
                 writeTo = Target.GREEN;
+                currentTarget.clear(); currentTarget.add(writeTo);
                 logger.info("snapshotState: writeTo = {}", writeTo);
                 return;
             }
@@ -92,6 +99,7 @@ public class NextDIYTwoPhaseCommitExampleJob {
                 fromCheckpoint = context.getCheckpointId();
                 blue.clear();
                 writeTo = Target.BLUE;
+                currentTarget.clear(); currentTarget.add(writeTo);
                 logger.info("snapshotState: writeTo = {}", writeTo);
                 return;
             }
@@ -101,8 +109,8 @@ public class NextDIYTwoPhaseCommitExampleJob {
         private void drain(ListState<String> input, long checkpointId) throws Exception {
             long cnt = 0;
             // to validate the output, cat all files together, sort them: sort -t : -k 2 -g all > all.sorted
-            BufferedWriter writer = new BufferedWriter(new FileWriter("/tmp/output/target-"+checkpointId + "-" + getRuntimeContext().getIndexOfThisSubtask()));
-            for (String rec: input.get()) {
+            BufferedWriter writer = new BufferedWriter(new FileWriter("/tmp/output/target-" + checkpointId + "-" + getRuntimeContext().getIndexOfThisSubtask()));
+            for (String rec : input.get()) {
                 writer.write(rec);
                 writer.write("\n");
                 cnt++;
@@ -116,20 +124,23 @@ public class NextDIYTwoPhaseCommitExampleJob {
             ListStateDescriptor<String> blueDescriptor =
                     new ListStateDescriptor<>(
                             "blue",
-                            TypeInformation.of(new TypeHint<String>() {}));
+                            TypeInformation.of(new TypeHint<String>() {
+                            }));
 
             blue = context.getOperatorStateStore().getListState(blueDescriptor);
 
             ListStateDescriptor<String> greenDescriptor =
                     new ListStateDescriptor<>(
                             "green",
-                            TypeInformation.of(new TypeHint<String>() {}));
+                            TypeInformation.of(new TypeHint<String>() {
+                            }));
             green = context.getOperatorStateStore().getListState(greenDescriptor);
 
             ListStateDescriptor<Target> targetDescriptor =
                     new ListStateDescriptor<>(
                             "currTarget",
-                            TypeInformation.of(new TypeHint<Target>() {}));
+                            TypeInformation.of(new TypeHint<Target>() {
+                            }));
             currentTarget = context.getOperatorStateStore().getListState(targetDescriptor);
             if (context.isRestored()) {
                 List<Target> targetList = Lists.newArrayList(currentTarget.get().iterator());
@@ -149,25 +160,43 @@ public class NextDIYTwoPhaseCommitExampleJob {
     }
 
 
-    private static class DataGen extends RichParallelSourceFunction<String> {
-        private boolean running = true;
+    private static class DataGen extends RichParallelSourceFunction<String> implements CheckpointedFunction {
+        private volatile boolean running = true;
+        private long count = 0L;
+        private transient ListState<Long> checkpointedCount;
 
         @Override
         public void run(SourceContext<String> ctx) throws Exception {
             long i = 0;
-            while(running) {
-                // Thread.sleep(1);
-                if (i % 10_000L == 0) {
+            while (running) {
+                Thread.sleep(50);
+                /* if (i % 10_000L == 0) {
                     Thread.sleep(100);
+                } */
+                synchronized (ctx.getCheckpointLock()) {
+                    ctx.collect("sample:" + i);
+                    i++;
                 }
-                ctx.collect("sample:" + i);
-                i++;
             }
         }
 
         @Override
         public void cancel() {
             running = false;
+        }
+
+        public void initializeState(FunctionInitializationContext context) throws Exception {
+            this.checkpointedCount = context.getOperatorStateStore().getListState(new ListStateDescriptor<>("count", Long.class));
+            if (context.isRestored()) {
+                for (Long count : this.checkpointedCount.get()) {
+                    this.count += count;
+                }
+            }
+        }
+
+        public void snapshotState(FunctionSnapshotContext context) throws Exception {
+            this.checkpointedCount.clear();
+            this.checkpointedCount.add(count);
         }
     }
 }
